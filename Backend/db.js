@@ -69,7 +69,7 @@ module.exports = {
         let salt = Math.round((new Date().valueOf() * Math.random())) + "";
         let encryptedPassword = crypto.createHmac("sha1", salt).update(password).digest("hex");
 
-        const db = mongoClient.db('Notes');
+        const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Users');
         let result = await usersCollection.insertOne({
             email: email,
@@ -84,7 +84,7 @@ module.exports = {
     },
 
     createNote: async function (title, text) {
-        const db = mongoClient.db('Notes');
+        const db = mongoClient.db('school-gossip-forum');
         const notesCollection = db.collection('Notes');
         await notesCollection.insertOne({
             title: title,
