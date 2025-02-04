@@ -1,1 +1,4 @@
 /backend/config.js
+/backend/node_modules
+/frontend/node_modules
+/frontendreal/node_modules
