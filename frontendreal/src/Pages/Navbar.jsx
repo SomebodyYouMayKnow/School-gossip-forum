@@ -1,25 +1,36 @@
 import React from 'react';
-
-function openNav() {
-    console.log('open');
-    document.getElementById("mySidepanel").style.width = "15vw";
-}
-
-function closeNav() {
-    document.getElementById("mySidepanel").style.width = "0";
-    console.log('close');
-}
+import { Link } from 'react-router-dom';
+import './Pages.css'; // Ensure you have a CSS file for styling
 
 const Navbar = () => {
     return (
-        <>
-            <div id="mySidepanel" className="sidepanel">
-                <a href="javascript:void(0)" className="closebtn" onClick={closeNav}>×</a>
-                <a href='/'>Home</a>
-                <a href='/Login'>Login</a>
-                <a href='/Register'>Register</a>
+        <nav className="navbar">
+            <div className="navbar-container">
+                <Link to="/" className="navbar-logo">
+                    Gossip
+                </Link>
+                <div className="menu-icon">
+                    <i className="fas fa-bars"></i>
+                </div>
+                <ul className="nav-menu">
+                    <li className="nav-item">
+                        <Link to="/" className="nav-links">
+                            Home
+                        </Link>
+                    </li>
+                    <li className="nav-item">
+                        <Link to="/Login" className="nav-links button">
+                            Login
+                        </Link>
+                    </li>
+                    <li className="nav-item">
+                        <Link to="/Register" className="nav-links button">
+                            Register
+                        </Link>
+                    </li>
+                </ul>
             </div>
-        </>
+        </nav>
     );
 };
 

@@ -4,6 +4,7 @@ import Register from './Pages/Register';
 import NotFound from './Pages/NotFound';
 import Home from './Pages/Home';
 import Navbar from './Pages/Navbar';
+import './Pages/Pages.css';
 
 function App() {
   return (

@@ -1,36 +1,29 @@
-import { Link } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-let data = {
-    token: "",
-    userId: "",
-    fullName: "",
-    email: "",
-    admin: "",
-}
+import './Pages.css';
 
 const Login = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const navigate = useNavigate();
 
-    async function handleSubmit(event) {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         try {
-            const response = await axios.get(`http://localhost:5555/Login?email=${email}&password=${password}`, {}, {
-                headers: {
-                    'Content-Type': 'text/plain',
-                },
-            });
-            if (Object.values(response.data).length === 5) {
+            const response = await axios.post('/api/login', { email, password });
+            if (response.data.token) {
+                const data = {};
                 data.token = response.data.token;
                 data.userId = response.data.userId;
                 data.fullName = response.data.fullName;
                 data.email = response.data.email;
                 data.admin = response.data.admin;
-                return data;
+                console.log(data);
+                // Redirect to home page
+                navigate('/home');
             } else {
-                return response.data.error.message;
+                alert(response.data.error.message);
             }
         } catch (e) {
             console.log(e);
@@ -39,8 +32,9 @@ const Login = () => {
 
     return (
         <div className="Forms_Sign_In">
+            <h2>Sign In</h2>
             <form className="row g-3" onSubmit={handleSubmit}>
-                <div className="col-md-6">
+                <div className="col-md-12">
                     <label htmlFor="inputEmail4" className="form-label">
                         Email
                     </label>
@@ -52,7 +46,7 @@ const Login = () => {
                         onChange={(event) => setEmail(event.target.value)}
                     />
                 </div>
-                <div className="col-md-6">
+                <div className="col-md-12">
                     <label htmlFor="inputPassword4" className="form-label">
                         Password
                     </label>
@@ -65,12 +59,16 @@ const Login = () => {
                     />
                 </div>
                 <div className="col-12">
-                    <button type="submit" className="btn btn-primary">
+                    <button type="submit" className="button-submit">
                         Sign in
                     </button>
                 </div>
+                <div className="col-12">
+                    <a href="/Register" className="link-account">
+                        Don't have an account? Register here
+                    </a>
+                </div>
             </form>
-            <Link to="/register">Register</Link>
         </div>
     );
 };
