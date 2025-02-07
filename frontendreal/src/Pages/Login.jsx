@@ -11,14 +11,19 @@ const Login = () => {
     const handleSubmit = async (event) => {
         event.preventDefault();
         try {
-            const response = await axios.post('/api/login', { email, password });
+            const response = await axios.get(`http://localhost:5555/Login?email=${email}&password=${password}`, {}, {
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+            });
             if (response.data.token) {
-                const data = {};
-                data.token = response.data.token;
-                data.userId = response.data.userId;
-                data.fullName = response.data.fullName;
-                data.email = response.data.email;
-                data.admin = response.data.admin;
+                const data = {
+                    token: response.data.token,
+                    userId: response.data.userId,
+                    fullName: response.data.fullName,
+                    email: response.data.email,
+                    admin: response.data.admin,
+                };
                 console.log(data);
                 // Redirect to home page
                 navigate('/home');
