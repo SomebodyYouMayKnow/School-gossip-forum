@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 import './Pages.css';
 
 const Login = () => {
@@ -25,8 +26,12 @@ const Login = () => {
                     admin: response.data.admin,
                 };
                 console.log(data);
+
+                // Set cookie with user data
+                Cookies.set('user', JSON.stringify(data), { expires: 7 });
+
                 // Redirect to home page
-                navigate('/home');
+                navigate('/');
             } else {
                 alert(response.data.error.message);
             }

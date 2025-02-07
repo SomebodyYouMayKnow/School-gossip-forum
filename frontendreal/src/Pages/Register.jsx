@@ -26,7 +26,7 @@ const Register = () => {
                 data.admin = response.data.admin;
                 console.log(data);
                 // Redirect to home page
-                navigate('/home');
+                navigate('/login');
             } else {
                 alert(response.data.error.message);
             }
