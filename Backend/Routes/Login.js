@@ -3,8 +3,8 @@ const db = require("../db");
 const Utils = require("../Utils");
 
 module.exports = async function (req, res, next) {
-    let email = req.query.email;
-    let password = req.query.password;
+    let email = req.body.email;
+    let password = req.body.password;
 
     if (!email || !password) {
         Utils.sendError(res, "Authentication failed. Email or password is missing.");

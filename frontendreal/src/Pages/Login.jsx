@@ -11,10 +11,15 @@ const Login = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        console.log('Email:', email);
+        console.log('Password:', password);
         try {
-            const response = await axios.get(`http://localhost:5555/Login?email=${email}&password=${password}`, {}, {
+            const response = await axios.post('http://localhost:5555/Login', {
+                email: email,
+                password: password
+            }, {
                 headers: {
-                    'Content-Type': 'text/plain',
+                    'Content-Type': 'application/json',
                 },
             });
             if (response.data.token) {
@@ -27,8 +32,8 @@ const Login = () => {
                 };
                 console.log(data);
 
-                // Set cookie with user data
-                Cookies.set('user', JSON.stringify(data), { expires: 7 });
+                // Set cookie with user data, expires in 24 hours
+                Cookies.set('user', JSON.stringify(data), { expires: 1 });
 
                 // Redirect to home page
                 navigate('/');

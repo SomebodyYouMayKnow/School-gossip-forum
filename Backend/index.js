@@ -1,17 +1,22 @@
 const express = require("express");
 const logger = require("morgan");
 const config = require("./config.js");
+const cors = require('cors');
+const bodyParser = require('body-parser'); // Import body-parser
 const app = express();
 const router = express.Router();
-const cors = require('cors');
+
 app.use(logger("dev"));
+app.use(cors()); // Enable CORS for all routes
+app.use(bodyParser.json()); // Parse JSON request bodies
+app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 
-//router.get("/ViewNotes", cors(), require('./Routes/ViewNotes.js'));
-//router.get("/CreateNote", cors(), require('./Routes/CreateNote.js'));
-//router.get("/Login", require("./Routes/Login.js"))
-router.get("/Login", cors(), require("./Routes/Login.js"))
-router.get("/Register", cors(), require("./Routes/Register.js"))
-
+//router.post("/ViewNotes", cors(), require('./Routes/ViewNotes.js'));
+//router.post("/CreateNote", cors(), require('./Routes/CreateNote.js'));
+//router.post("/Login", require("./Routes/Login.js"))
+router.post("/Login", require("./Routes/Login.js"));
+router.post("/Register", require("./Routes/Register.js"));
+router.post("/verifyuser", require("./Routes/verifyuser.js"));
 
 app.use("/", router);
 

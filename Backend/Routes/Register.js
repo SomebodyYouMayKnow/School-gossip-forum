@@ -6,9 +6,15 @@ module.exports = async function (req, res, next) {
     const emailRegex = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
     const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_]{1,20}$/;
 
-    let email = req.query.email;
-    let fullName = req.query.fullName;
-    let password = req.query.password;
+    console.log('Request Body:', req.body); // Log the entire request body
+
+    let email = req.body.email;
+    let fullName = req.body.fullName;
+    let password = req.body.password;
+
+    console.log('Email:', email);
+    console.log('Full Name:', fullName);
+    console.log('Password:', password);
 
     if (!fullName) {
         Utils.sendError(res, "fullName cannot be empty.");
@@ -54,11 +60,13 @@ module.exports = async function (req, res, next) {
     let user = await db.createUser(email, password, fullName);
     console.log(user);
     let token = Utils.createToken(user._id, user.email, false);
-    Utils.sendResult(res, {
+    const response = {
         token: token,
         userId: user._id,
         fullName: user.fullName,
         email: user.email,
         admin: user.admin
-    });
+    };
+    console.log('Response:', response); // Log the response
+    Utils.sendResult(res, response);
 };
