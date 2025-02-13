@@ -2,24 +2,26 @@ const express = require("express");
 const logger = require("morgan");
 const config = require("./config.js");
 const cors = require('cors');
-const bodyParser = require('body-parser'); // Import body-parser
+const bodyParser = require('body-parser');
 const app = express();
-const router = express.Router();
 
+// Middleware
 app.use(logger("dev"));
-app.use(cors()); // Enable CORS for all routes
-app.use(bodyParser.json()); // Parse JSON request bodies
-app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded request bodies
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-//router.post("/ViewNotes", cors(), require('./Routes/ViewNotes.js'));
-//router.post("/CreateNote", cors(), require('./Routes/CreateNote.js'));
-//router.post("/Login", require("./Routes/Login.js"))
-router.post("/Login", require("./Routes/Login.js"));
-router.post("/Register", require("./Routes/Register.js"));
-router.post("/verifyuser", require("./Routes/verifyuser.js"));
+// Test route to verify server is working
+app.get('/test', (req, res) => {
+    res.json({ message: 'Test route working' });
+});
 
-app.use("/", router);
+// Routes
+app.use("/api/login", require("./Routes/Login.js"));
+app.use("/api/register", require("./Routes/Register.js"));
+app.use("/api/checkcookie", require("./Routes/checkcookie.js"));
 
+// Start server
 app.listen(config.port, () => {
     console.log("App is listening on " + config.port);
 });

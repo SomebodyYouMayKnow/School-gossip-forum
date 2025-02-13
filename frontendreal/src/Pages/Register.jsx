@@ -16,7 +16,7 @@ const Register = () => {
         console.log('Full Name:', fullName);
         console.log('Password:', password);
         try {
-            const response = await axios.post('http://localhost:5555/Register', {
+            const response = await axios.post('http://localhost:5555/api/Register', {
                 email: email,
                 fullName: fullName,
                 password: password
@@ -66,7 +66,7 @@ const Register = () => {
                 </div>
                 <div className="col-md-12">
                     <label htmlFor="inputFullName4" className="form-label">
-                        Full Name
+                        Username
                     </label>
                     <input
                         type="text"

@@ -67,5 +67,28 @@ module.exports = {
 
         return await this.getUserById(result.insertedId);
     },
+    // Add this inside module.exports
+    checkCookie: async function(cookieData) {
+        try {
+            if (!cookieData || !cookieData.token) {
+                return { valid: false, message: 'No cookie data found' };
+            }
+
+            // Verify the JWT token
+            try {
+                const decoded = jwt.verify(cookieData.token, config.jwtSecret);
+                console.log('Decoded token:', decoded); // Debug log
+                // Additional checks...
+                return { valid: true, userData: decoded };
+            } catch (error) {
+                console.log('JWT verification error:', error); // Debug log
+                return { valid: false, message: 'Invalid token: ' + error.message };
+            }
+        } catch (error) {
+            console.log('General error:', error); // Debug log
+            return { valid: false, message: error.message };
+        }
+    }
+
 
 }

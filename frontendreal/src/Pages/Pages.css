@@ -216,3 +216,21 @@ body {
 .link-account:hover {
     text-decoration: underline;
 }
+.test-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+.status-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.status-message p {
+    margin: 0;
+    color: #333;
+}
