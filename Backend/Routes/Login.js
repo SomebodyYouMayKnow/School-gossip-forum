@@ -1,40 +1,54 @@
+const express = require("express");
+const router = express.Router();
+const db = require("../db.js");
 const crypto = require("crypto");
-const db = require("../db");
-const Utils = require("../Utils");
+const jwt = require('jsonwebtoken');
+const config = require('../config.js');
 
-module.exports = async function (req, res, next) {
-    let email = req.body.email;
-    let password = req.body.password;
+router.post("/", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await db.getUserByEmail(email);
 
-    if (!email || !password) {
-        Utils.sendError(res, "Authentication failed. Email or password is missing.");
-        return;
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        const encryptedPassword = crypto
+            .createHmac("sha1", user.salt)
+            .update(password)
+            .digest("hex");
+
+        if (encryptedPassword === user.password) {
+            // Create token with all necessary user data
+            const tokenPayload = {
+                userId: user._id.toString(),
+                email: user.email,
+                fullName: user.fullName,
+                admin: user.admin || false
+            };
+
+            const token = jwt.sign(
+                tokenPayload, 
+                config.jwtSecret,
+                { expiresIn: config.jwtTokenDuration }
+            );
+
+            res.json({
+                success: true,
+                token: token,
+                userId: user._id.toString(),
+                email: user.email,
+                fullName: user.fullName,
+                admin: user.admin || false
+            });
+        } else {
+            res.json({ success: false, message: "Invalid password" });
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
+});
 
-    let user = await db.getUserByEmail(email);
-    // Check user exists
-    if (!user) {
-        Utils.sendError(res, "Authentication failed. Invalid email or password");
-        return;
-    }
-
-    if (user.salt) {
-        // Encrypt password before comparing
-        password = crypto.createHmac("sha1", user.salt).update(password).digest("hex");
-    }
-
-    if (password != user.password) {
-        Utils.sendError(res, "Authentication failed. Invalid password");
-        return;
-    }
-
-    let token = Utils.createToken(user._id, user.email, user.admin);
-
-    Utils.sendResult(res, {
-        token: token,
-        userId: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        admin: user.admin,
-    });
-};
+module.exports = router;

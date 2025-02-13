@@ -2,6 +2,7 @@ const MongoClient = require("mongodb").MongoClient;
 const crypto = require("crypto");
 const config = require("./config.js");
 const jwt = require("jsonwebtoken");
+const { ObjectId } = require('mongodb');
 
 let mongoClient;
 
@@ -44,10 +45,12 @@ module.exports = {
     getUserById: async function (id) {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Users');
-        let user = await usersCollection.findOne({
-            _id: id
-        });
-        return user;
+        try {
+            return await usersCollection.findOne({ _id: new ObjectId(id) });
+        } catch (error) {
+            console.error('Error getting user by ID:', error);
+            return null;
+        }
     },
 
     createUser: async function (email, password, fullName) {
@@ -67,28 +70,61 @@ module.exports = {
 
         return await this.getUserById(result.insertedId);
     },
-    // Add this inside module.exports
+
     checkCookie: async function(cookieData) {
         try {
+            console.log('Starting cookie check with data:', cookieData);
+    
             if (!cookieData || !cookieData.token) {
-                return { valid: false, message: 'No cookie data found' };
+                console.log('No token provided');
+                return { valid: false, message: 'No token provided' };
             }
-
-            // Verify the JWT token
+    
+            let decoded;
             try {
-                const decoded = jwt.verify(cookieData.token, config.jwtSecret);
-                console.log('Decoded token:', decoded); // Debug log
-                // Additional checks...
-                return { valid: true, userData: decoded };
-            } catch (error) {
-                console.log('JWT verification error:', error); // Debug log
-                return { valid: false, message: 'Invalid token: ' + error.message };
+                decoded = jwt.verify(cookieData.token, config.jwtSecret);
+                console.log('Decoded token:', decoded);
+            } catch (jwtError) {
+                console.error('JWT verification failed:', jwtError);
+                return { valid: false, message: 'Invalid or expired token' };
             }
+    
+            const db = mongoClient.db('school-gossip-forum');
+            const usersCollection = db.collection('Users');
+            let user;
+            try {
+                user = await usersCollection.findOne({ _id: new ObjectId(decoded.userId) });
+                console.log('Found user:', user);
+            } catch (dbError) {
+                console.error('Database query failed:', dbError);
+                return { valid: false, message: 'Database query failed' };
+            }
+    
+            if (!user) {
+                console.log('User not found in database');
+                return { valid: false, message: 'User not found in database' };
+            }
+    
+            // Verify the essential data matches
+            if (decoded.email !== user.email) {
+                console.log('Token email mismatch');
+                return { valid: false, message: 'Token email mismatch' };
+            }
+    
+            return {
+                valid: true,
+                userData: {
+                    userId: user._id.toString(),
+                    email: user.email,
+                    fullName: user.fullName,
+                    admin: user.admin || false
+                }
+            };
+    
         } catch (error) {
-            console.log('General error:', error); // Debug log
-            return { valid: false, message: error.message };
+            console.error('Cookie check error:', error);
+            throw error;
         }
     }
-
-
-}
+    
+};

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -10,29 +9,28 @@ const Test = () => {
     const checkCookie = async () => {
         try {
             const userCookie = Cookies.get('user');
-
+            
             if (!userCookie) {
                 setCookieStatus('No user cookie found!');
                 return;
             }
 
             const userData = JSON.parse(userCookie);
-            console.log('Sending cookie data:', userData); // Debug log
-
-            // Updated endpoint
+            console.log('Sending cookie data:', userData);
+            
             const response = await axios.post('http://localhost:5555/api/checkcookie', userData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
 
-            console.log('Response:', response.data); // Debug log
+            console.log('Response:', response.data);
 
-            if (response.data.valid) {
+            if (response.data.success) {
                 setCookieStatus('Cookie is valid! User authenticated.');
                 console.log('User data:', response.data.userData);
             } else {
-                setCookieStatus('Cookie validation failed: ' + response.data.message);
+                setCookieStatus(`Cookie validation failed: ${response.data.message}`);
                 console.log('Validation failure details:', response.data);
             }
 
@@ -42,7 +40,6 @@ const Test = () => {
         }
     };
 
-    // Add a test function to verify server connection
     const testConnection = async () => {
         try {
             const response = await axios.get('http://localhost:5555/test');
@@ -57,15 +54,15 @@ const Test = () => {
     return (
         <div className="test-container">
             <h2>Cookie Test Page</h2>
-            <button
-                className="button-submit"
+            <button 
+                className="button-submit" 
                 onClick={checkCookie}
                 style={{ marginRight: '10px' }}
             >
                 Check Cookie
             </button>
-            <button
-                className="button-submit"
+            <button 
+                className="button-submit" 
                 onClick={testConnection}
             >
                 Test Server Connection
@@ -77,4 +74,6 @@ const Test = () => {
             )}
         </div>
     );
-}; export default Test;
+};
+
+export default Test;

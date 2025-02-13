@@ -1,3 +1,4 @@
+// filepath: /c:/Dev/School-gossip-forum/frontendreal/src/Pages/Register.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
