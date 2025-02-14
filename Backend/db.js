@@ -52,7 +52,18 @@ module.exports = {
             return null;
         }
     },
-
+    
+    getPostById: async function (id) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Posts');
+        try {
+            return await usersCollection.findOne({ _id: new ObjectId(id) });
+        } catch (error) {
+            console.error('Error getting user by ID:', error);
+            return null;
+        }
+    },
+    
     createUser: async function (email, password, fullName) {
         let salt = Math.round((new Date().valueOf() * Math.random())) + "";
         let encryptedPassword = crypto.createHmac("sha1", salt).update(password).digest("hex");
@@ -65,7 +76,10 @@ module.exports = {
             salt: salt,
             fullName: fullName,
             admin: false,
-            creationDate: new Date()
+            creationDate: new Date(),
+            lastPost: new Date(),
+            lastComment: new Date(),
+            lastChat: new Date()
         });
 
         return await this.getUserById(result.insertedId);
@@ -125,6 +139,20 @@ module.exports = {
             console.error('Cookie check error:', error);
             throw error;
         }
-    }
+    }, 
+    createPost: async function (fullName, userId, postContent) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Posts');
+        let result = await usersCollection.insertOne({
+            postTitle: postContent.title,
+            postText: postContent.text,
+            posterName: fullName,
+            posterId: userId,
+            creationDate: new Date(),
+            comments: []
+        });
+
+        return await this.getPostById(result.insertedId);
+    },
     
 };
