@@ -6,6 +6,7 @@ import Home from './Pages/Home';
 import Navbar from './Pages/Navbar';
 import './Pages/Pages.css';
 import Test from './Pages/test';
+import CreateNotePage from './Pages/CreateNote';
 function App() {
   return (
     <>
@@ -17,6 +18,7 @@ function App() {
         <Route path='/Login' element={<Login />} />
         <Route path='/Register' element={<Register />} />
         <Route path="/test" element={<Test />} />
+        <Route path='/CreateNote' element={<CreateNotePage />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </>

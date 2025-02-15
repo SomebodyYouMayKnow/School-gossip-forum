@@ -141,18 +141,24 @@ module.exports = {
         }
     }, 
     createPost: async function (fullName, userId, postContent) {
-        const db = mongoClient.db('school-gossip-forum');
-        const usersCollection = db.collection('Posts');
-        let result = await usersCollection.insertOne({
-            postTitle: postContent.title,
-            postText: postContent.text,
-            posterName: fullName,
-            posterId: userId,
-            creationDate: new Date(),
-            comments: []
-        });
+        try {
+            const db = mongoClient.db('school-gossip-forum');
+            const postsCollection = db.collection('Posts');
+            console.log('Creating post with data:', { fullName, userId, postContent });
 
-        return await this.getPostById(result.insertedId);
-    },
+            const result = await postsCollection.insertOne({
+                fullName: fullName,
+                userId: new ObjectId(userId),
+                postContent: postContent,
+                createdAt: new Date()
+            });
+            console.log('Post created with ID:', result.insertedId);
+
+            return await postsCollection.findOne({ _id: result.insertedId });
+        } catch (error) {
+            console.error('Error creating post:', error);
+            throw error;
+        }
+    }
     
 };
