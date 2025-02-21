@@ -13,6 +13,7 @@ const Login = () => {
         event.preventDefault();
         console.log('Email:', email);
         console.log('Password:', password);
+
         try {
             const response = await axios.post('http://localhost:5555/api/Login', {
                 email: email,
@@ -22,6 +23,9 @@ const Login = () => {
                     'Content-Type': 'application/json',
                 },
             });
+
+            console.log("Server response:", response.data); // Debugging log
+
             if (response.data.token) {
                 const data = {
                     token: response.data.token,
@@ -30,18 +34,19 @@ const Login = () => {
                     email: response.data.email,
                     admin: response.data.admin,
                 };
-                console.log(data);
 
-                // Set cookie with user data, expires in 24 hours
+                console.log("Login successful:", data);
                 Cookies.set('user', JSON.stringify(data), { expires: 1 });
 
                 // Redirect to home page
                 navigate('/');
             } else {
-                alert(response.data.error.message);
+                console.warn("Login failed:", response.data);
+                alert(response.data.error?.message || response.data.message || "Login failed. Please try again.");
             }
-        } catch (e) {
-            console.log(e);
+        } catch (error) {
+            console.error("Login request failed:", error);
+            alert("An error occurred. Please check your internet connection and try again.");
         }
     };
 
