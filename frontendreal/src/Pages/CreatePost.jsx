@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const CreateNotePage = () => {
+const CreatePostPage = () => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const navigate = useNavigate();
@@ -10,7 +10,7 @@ const CreateNotePage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:5555/api/notes', {
+            const response = await axios.post('http://localhost:5555/api/createpost', {
                 title: title,
                 content: content
             }, {
@@ -59,4 +59,4 @@ const CreateNotePage = () => {
     );
 };
 
-export default CreateNotePage;
+export default CreatePostPage;
