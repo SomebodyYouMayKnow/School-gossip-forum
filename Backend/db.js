@@ -59,7 +59,7 @@ module.exports = {
         try {
             return await usersCollection.findOne({ _id: new ObjectId(id) });
         } catch (error) {
-            console.error('Error getting user by ID:', error);
+            console.error('Error getting post by ID:', error);
             return null;
         }
     },
@@ -76,28 +76,58 @@ module.exports = {
             salt: salt,
             fullName: fullName,
             admin: false,
+            timeOutLeft: 0,
+            banned: false,
             creationDate: new Date(),
             lastPost: new Date(),
             lastComment: new Date(),
-            lastChat: new Date()
+            lastChat: new Date(),
+            savedPosts: [],
         });
 
         return await this.getUserById(result.insertedId);
     },
+    
+    createPost: async function (email, userID, fullName, postTitle, postContent) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Posts');
+        let result = await usersCollection.insertOne({
+            fullName: fullName,
+            creationDate: new Date(),
+            comments: [],
+            postTitle: postTitle,
+            postContent: postContent,
+            userID: userID,
+            createdAt: new Date()
+        });
 
+        return await this.getPostById(result.insertedId);
+    },
+    deletePost: async function (postId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
+            if (result.deletedCount === 1) {
+                return { success: true, message: 'Post deleted successfully' };
+            } else {
+                return { success: false, message: 'Post not found' };
+            }
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            return { success: false, message: 'Error deleting post' };
+        }
+    },
     checkCookie: async function(cookieData) {
         try {
-            console.log('Starting cookie check with data:', cookieData);
     
             if (!cookieData || !cookieData.token) {
-                console.log('No token provided');
                 return { valid: false, message: 'No token provided' };
             }
     
             let decoded;
             try {
                 decoded = jwt.verify(cookieData.token, config.jwtSecret);
-                console.log('Decoded token:', decoded);
             } catch (jwtError) {
                 console.error('JWT verification failed:', jwtError);
                 return { valid: false, message: 'Invalid or expired token' };
@@ -108,20 +138,16 @@ module.exports = {
             let user;
             try {
                 user = await usersCollection.findOne({ _id: new ObjectId(decoded.userId) });
-                console.log('Found user:', user);
             } catch (dbError) {
-                console.error('Database query failed:', dbError);
                 return { valid: false, message: 'Database query failed' };
             }
     
             if (!user) {
-                console.log('User not found in database');
                 return { valid: false, message: 'User not found in database' };
             }
     
             // Verify the essential data matches
             if (decoded.email !== user.email) {
-                console.log('Token email mismatch');
                 return { valid: false, message: 'Token email mismatch' };
             }
     
@@ -136,29 +162,7 @@ module.exports = {
             };
     
         } catch (error) {
-            console.error('Cookie check error:', error);
-            throw error;
-        }
-    }, 
-    createPost: async function (fullName, userId, postContent) {
-        try {
-            const db = mongoClient.db('school-gossip-forum');
-            const postsCollection = db.collection('Posts');
-            console.log('Creating post with data:', { fullName, userId, postContent });
-
-            const result = await postsCollection.insertOne({
-                fullName: fullName,
-                userId: new ObjectId(userId),
-                postContent: postContent,
-                createdAt: new Date()
-            });
-            console.log('Post created with ID:', result.insertedId);
-
-            return await postsCollection.findOne({ _id: result.insertedId });
-        } catch (error) {
-            console.error('Error creating post:', error);
             throw error;
         }
     }
-    
 };

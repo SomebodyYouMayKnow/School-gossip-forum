@@ -1,32 +1,33 @@
+const express = require('express');
+const router = express.Router();
 const db = require('../db.js');
-const Utils = require("../Utils");
+const jwt = require('jsonwebtoken');
+const config = require('../config.js');
+const Utils = require('../Utils.js');
 
-module.exports = async function (req, res, next) {
+
+router.post('/', async (req, res) => {
     try {
-        // Extract the cookie from the request
-        const cookieData = req.cookies.user;
-        console.log('Cookie data:', cookieData);
-
-        // Check the cookie
-        const cookieCheckResult = await db.checkCookie(cookieData);
-        console.log('Cookie check result:', cookieCheckResult);
-
-        if (!cookieCheckResult.valid) {
-            // If the cookie is invalid, send an unauthorized response
-            return res.status(401).json({ message: cookieCheckResult.message });
+        const cookieData = req.body.userCookie;
+        const userName = req.body.fullName;
+        const userId = req.body.userId;
+        const postTitle = req.body.postTitle;
+        const postContent = req.body.postContent;
+        const result = await db.checkCookie(cookieData);
+        if (result.valid) {
+            const newPost = await db.createPost(userName, userId, postTitle, postContent);
+            console.log('New post:', newPost);
+            if (newPost.userName && newPost.userId && newPost.postTitle && newPost.postContent != null) {
+                res.json({ success: true, message: 'Post created successfully', post: newPost });
+            } else {
+                res.json({ success: false, message: 'All fields required' });
+            }
+        } else {
+            res.json({ success: false, message: result.message });
         }
-
-        // Proceed with creating the post
-        const { fullName, userId, postContent } = req.body;
-        console.log('Request body:', req.body);
-
-        const response = await db.createPost(fullName, userId, postContent);
-        console.log('Create post response:', response);
-
-        // Send the result
-        Utils.sendResult(res, response);
     } catch (error) {
-        console.error('Error in CreatePost route:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ success: false, message: error.message });
     }
-};
+});
+
+module.exports = router;

@@ -7,7 +7,6 @@ router.get('/test', (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-    console.log('Received cookie check request:', req.body);
     try {
         const cookieData = req.body;
         const result = await db.checkCookie(cookieData);
