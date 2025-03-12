@@ -95,6 +95,7 @@ module.exports = {
             fullName: fullName,
             creationDate: new Date(),
             comments: [],
+            email: email,
             postTitle: postTitle,
             postContent: postContent,
             userID: userID,
@@ -106,6 +107,7 @@ module.exports = {
     deletePost: async function (postId) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
+        console.log('Deleting post:', postId);
         try {
             const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
             if (result.deletedCount === 1) {
