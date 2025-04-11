@@ -48,7 +48,6 @@ module.exports = {
         try {
             return await usersCollection.findOne({ _id: new ObjectId(id) });
         } catch (error) {
-            console.error('Error getting user by ID:', error);
             return null;
         }
     },
@@ -59,7 +58,6 @@ module.exports = {
         try {
             return await usersCollection.findOne({ _id: new ObjectId(id) });
         } catch (error) {
-            console.error('Error getting post by ID:', error);
             return null;
         }
     },
@@ -87,7 +85,23 @@ module.exports = {
 
         return await this.getUserById(result.insertedId);
     },
-    
+    updateUserLastPost: async function (userId, newLastPostDate) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Users');
+        try {
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(userId) }, // Filter by user ID
+                { $set: { lastPost: newLastPostDate } } // Update the lastPost field
+            );
+            if (result.modifiedCount === 1) {
+                return { success: true, message: 'User lastPost updated successfully' };
+            } else {
+                return { success: false, message: 'No user found to update' };
+            }
+        } catch (error) {
+            return { success: false, message: 'Error updating user lastPost' };
+        }
+    },
     createPost: async function (email, userID, fullName, postTitle, postContent) {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Posts');
@@ -107,7 +121,6 @@ module.exports = {
     deletePost: async function (postId) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
-        console.log('Deleting post:', postId);
         try {
             const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
             if (result.deletedCount === 1) {
@@ -116,7 +129,6 @@ module.exports = {
                 return { success: false, message: 'Post not found' };
             }
         } catch (error) {
-            console.error('Error deleting post:', error);
             return { success: false, message: 'Error deleting post' };
         }
     },
@@ -131,7 +143,6 @@ module.exports = {
             try {
                 decoded = jwt.verify(cookieData.token, config.jwtSecret);
             } catch (jwtError) {
-                console.error('JWT verification failed:', jwtError);
                 return { valid: false, message: 'Invalid or expired token' };
             }
     

@@ -25,10 +25,17 @@ router.post('/', async (req, res) => {
                 db.deletePost(newPost._id);
                 return;
             } else if (String(newPost.email) == String(email) && String(newPost.userID) == String(userId) && String(newPost.fullName) == String(userName) && String(newPost.postTitle) == String(postTitle) && String(newPost.postContent) == String(postContent)) {
-                db.getUserById(newPost.userID);
-
-                Utils.sendResult(res, { success: true, message: 'Post created successfully', newPost });
-                return;
+                let user = await db.getUserById(newPost.userID);
+                const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+                if (user.lastPost && new Date(user.lastPost) > fiveHoursAgo) {
+                    Utils.sendError(res, 'You cannot create a new post within 5 hours of your last post.');
+                    return;
+                } else {
+                    Utils.sendResult(res, { success: true, message: 'Post created successfully', newPost });
+                    db.updateUserLastPost(userId, new Date());
+                    return;
+                }
+                
             } else {
                 Utils.sendError(res, 'Error creating post. Please try again.');
                 db.deletePost(newPost._id);
