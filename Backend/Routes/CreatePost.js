@@ -4,7 +4,7 @@ const db = require('../db.js');
 const jwt = require('jsonwebtoken');
 const config = require('../config.js');
 const Utils = require('../Utils.js');
-
+const userSettings = require('../userSettings.js'); // Import user settings
 
 router.post('/', async (req, res) => {
     try {
@@ -26,9 +26,16 @@ router.post('/', async (req, res) => {
                 return;
             } else if (String(newPost.email) == String(email) && String(newPost.userID) == String(userId) && String(newPost.fullName) == String(userName) && String(newPost.postTitle) == String(postTitle) && String(newPost.postContent) == String(postContent)) {
                 let user = await db.getUserById(newPost.userID);
-                const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
-                if (user.lastPost && new Date(user.lastPost) > fiveHoursAgo) {
+                // If user is premium, skip cooldown
+                if (user.premium || user.admin) {
+                    Utils.sendResult(res, { success: true, message: 'Post created successfully', newPost });
+                    db.updateUserLastPost(userId, new Date());
+                    return;
+                }
+                const downtime = new Date(Date.now() - userSettings.timeBetweenPosts); 
+                if (user.lastPost && new Date(user.lastPost) > downtime) {
                     Utils.sendError(res, 'You cannot create a new post within 5 hours of your last post.');
+                    db.deletePost(newPost._id);
                     return;
                 } else {
                     Utils.sendResult(res, { success: true, message: 'Post created successfully', newPost });

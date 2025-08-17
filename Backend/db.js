@@ -77,6 +77,7 @@ module.exports = {
             timeOutLeft: 0,
             banned: false,
             creationDate: new Date(),
+            premium: false,
             lastPost: new Date(),
             lastComment: new Date(),
             lastChat: new Date(),

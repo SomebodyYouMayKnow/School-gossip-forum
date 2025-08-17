@@ -18,32 +18,35 @@ router.post("/", async (req, res) => {
             .createHmac("sha1", user.salt)
             .update(password)
             .digest("hex");
+        if (!user.banned) {
+            if (encryptedPassword === user.password) {
+                // Create token with all necessary user data
+                const tokenPayload = {
+                    userId: user._id.toString(),
+                    email: user.email,
+                    fullName: user.fullName,
+                    admin: user.admin || false
+                };
 
-        if (encryptedPassword === user.password) {
-            // Create token with all necessary user data
-            const tokenPayload = {
-                userId: user._id.toString(),
-                email: user.email,
-                fullName: user.fullName,
-                admin: user.admin || false
-            };
+                const token = jwt.sign(
+                    tokenPayload,
+                    config.jwtSecret,
+                    { expiresIn: config.jwtTokenDuration }
+                );
 
-            const token = jwt.sign(
-                tokenPayload, 
-                config.jwtSecret,
-                { expiresIn: config.jwtTokenDuration }
-            );
-
-            res.json({
-                success: true,
-                token: token,
-                userId: user._id.toString(),
-                email: user.email,
-                fullName: user.fullName,
-                admin: user.admin || false
-            });
+                res.json({
+                    success: true,
+                    token: token,
+                    userId: user._id.toString(),
+                    email: user.email,
+                    fullName: user.fullName,
+                    admin: user.admin || false
+                });
+            } else {
+                res.json({ success: false, message: "Invalid password" });
+            }
         } else {
-            res.json({ success: false, message: "Invalid password" });
+            res.json({success: false, message: "You are banned. To contact a moderator. You can do this by emailing ..."})
         }
     } catch (error) {
         console.error('Login error:', error);
