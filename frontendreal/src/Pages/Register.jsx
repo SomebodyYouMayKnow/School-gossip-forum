@@ -5,11 +5,25 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import './Pages.css';
 
+
+
+
+
+
+
 const Register = () => {
     const [email, setEmail] = useState('');
     const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
+
+    // Redirect to home if already logged in
+    React.useEffect(() => {
+        const userCookie = Cookies.get('user');
+        if (userCookie) {
+            navigate('/');
+        }
+    }, [navigate]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
