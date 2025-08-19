@@ -28,6 +28,7 @@ app.use("/api/login", require("./Routes/Login.js"));
 app.use("/api/register", require("./Routes/Register.js"));
 app.use("/api/checkcookie", require("./Routes/checkcookie.js"));
 app.use("/api/createpost", require("./Routes/CreatePost.js"));
+app.use("/api/recent-posts", require("./Routes/recentPosts.js"));
 
 // Start server
 app.listen(config.port, () => {

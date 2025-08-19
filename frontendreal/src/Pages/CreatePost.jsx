@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const CreatePost = () => {
     const [title, setTitle] = useState('');
@@ -41,17 +43,34 @@ const CreatePost = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <div>
-                <label>Title:</label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </div>
-            <div>
-                <label>Content:</label>
-                <textarea value={content} onChange={(e) => setContent(e.target.value)} required />
-            </div>
-            <button type="submit">Submit</button>
-        </form>
+        <div className="create-post-container">
+            <h2 className="create-post-title">Create a New Post</h2>
+            <form className="create-post-form" onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label htmlFor="post-title" className="form-label">Title</label>
+                    <input
+                        id="post-title"
+                        className="form-input"
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        required
+                        placeholder="Enter your post title"
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="post-content" className="form-label">Content</label>
+                    <ReactQuill
+                        id="post-content"
+                        className="form-quill"
+                        value={content}
+                        onChange={setContent}
+                        placeholder="Write your post here..."
+                    />
+                </div>
+                <button className="submit-btn" type="submit">Submit</button>
+            </form>
+        </div>
     );
 };
 

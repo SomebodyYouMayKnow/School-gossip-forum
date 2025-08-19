@@ -4,15 +4,6 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import './Pages.css';
 
-
-
-
-
-
-
-
-
-
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

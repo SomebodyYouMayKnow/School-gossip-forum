@@ -1,3 +1,88 @@
+/* CreatePost styles */
+.create-post-container {
+    background: #fff;
+    max-width: 600px;
+    margin: 40px auto 0 auto;
+    padding: 32px 32px 24px 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.04);
+}
+
+.create-post-title {
+    text-align: center;
+    margin-bottom: 28px;
+    font-size: 2rem;
+    color: #222;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.create-post-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 4px;
+}
+
+.form-input {
+    padding: 10px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #fafbfc;
+    transition: border 0.2s;
+}
+.form-input:focus {
+    border-color: #4f8cff;
+    outline: none;
+}
+
+.form-quill {
+    min-height: 160px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1.5px solid #d1d5db;
+    transition: border 0.2s;
+}
+.form-quill:focus-within {
+    border-color: #4f8cff;
+}
+.form-quill .ql-toolbar {
+    border-radius: 6px 6px 0 0;
+}
+.form-quill .ql-container {
+    border-radius: 0 0 6px 6px;
+    min-height: 120px;
+}
+
+.submit-btn {
+    background: linear-gradient(90deg, #4f8cff 0%, #38b6ff 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 2px 8px rgba(79,140,255,0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.submit-btn:hover {
+    background: linear-gradient(90deg, #38b6ff 0%, #4f8cff 100%);
+    box-shadow: 0 4px 16px rgba(79,140,255,0.12);
+}
 /* Common styles */
 body {
     font-family: Arial, sans-serif;

@@ -178,5 +178,15 @@ module.exports = {
         } catch (error) {
             throw error;
         }
-    }
+    },
+    getRecentPosts: async function (limit = 10) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        const posts = await postsCollection
+        .find({})
+        .sort({ createdAt: -1 }) // or use creationDate if that's your field
+        .limit(limit)
+        .toArray();
+    return posts;
+    },
 };
