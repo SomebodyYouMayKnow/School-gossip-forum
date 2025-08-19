@@ -25,6 +25,73 @@ module.exports = {
         return mongoClient;
     },
 
+    // Add a comment to a post
+    addComment: async function (postId, userId, fullName, commentText, parentCommentId = null) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        // Always fetch the user's fullName from the Users collection
+        let userFullName = fullName;
+        try {
+            const user = await db.collection('Users').findOne({ _id: new ObjectId(userId) });
+            if (user && user.fullName) userFullName = user.fullName;
+        } catch {}
+        const comment = {
+            _id: new ObjectId(),
+            userId,
+            fullName: userFullName,
+            text: commentText,
+            createdAt: new Date(),
+            likes: [],
+            replies: [],
+            parent: parentCommentId || null
+        };
+        if (!parentCommentId) {
+            await postsCollection.updateOne(
+                { _id: new ObjectId(postId) },
+                { $push: { comments: comment } }
+            );
+        } else {
+            // Add as a reply to a comment
+            await postsCollection.updateOne(
+                { _id: new ObjectId(postId), "comments._id": new ObjectId(parentCommentId) },
+                { $push: { "comments.$.replies": comment } }
+            );
+        }
+        return comment;
+    },
+
+    // Get comments for a post
+    getComments: async function (postId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        return post && post.comments ? post.comments : [];
+    },
+
+    // Like or unlike a comment
+    likeComment: async function (postId, commentId, userId, action) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        let update;
+        if (action === 'like') {
+            update = { $addToSet: { "comments.$.likes": userId } };
+        } else if (action === 'unlike') {
+            update = { $pull: { "comments.$.likes": userId } };
+        } else {
+            throw new Error('Invalid like action');
+        }
+        const result = await postsCollection.updateOne(
+            { _id: new ObjectId(postId), "comments._id": new ObjectId(commentId) },
+            update
+        );
+        return result.modifiedCount > 0;
+    },
+
+    // Reply to a comment (threaded, only 1 level deep)
+    replyToComment: async function (postId, parentCommentId, userId, fullName, replyText) {
+        // Reuse addComment with parentCommentId
+        return await this.addComment(postId, userId, fullName, replyText, parentCommentId);
+    },
     listUsers: async function (query) {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Users');

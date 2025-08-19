@@ -16,13 +16,29 @@ const ViewPosts = () => {
     const POSTS_PER_PAGE = 10;
 
     const [total, setTotal] = useState(null);
+
     useEffect(() => {
         const fetchPosts = async () => {
             setLoading(true);
             try {
                 const response = await axios.get(`http://localhost:5555/api/recent-posts?limit=${POSTS_PER_PAGE}&skip=${(page-1)*POSTS_PER_PAGE}`);
                 const newPosts = response.data.posts || [];
-                setPosts(prev => page === 1 ? newPosts : [...prev, ...newPosts]);
+                // Fetch comment counts for each post
+                const commentCounts = await Promise.all(
+                    newPosts.map(async post => {
+                        try {
+                            const res = await axios.get(`http://localhost:5555/api/comment/${post._id}`);
+                            return { postId: post._id, count: (res.data.comments || []).length };
+                        } catch {
+                            return { postId: post._id, count: 0 };
+                        }
+                    })
+                );
+                const postsWithComments = newPosts.map(post => {
+                    const found = commentCounts.find(c => c.postId === post._id);
+                    return { ...post, commentCount: found ? found.count : 0 };
+                });
+                setPosts(prev => page === 1 ? postsWithComments : [...prev, ...postsWithComments]);
                 setTotal(response.data.total);
                 setHasMore(((page - 1) * POSTS_PER_PAGE + newPosts.length) < response.data.total);
             } catch (err) {
@@ -119,6 +135,9 @@ const ViewPosts = () => {
                             <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
                             <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
                             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', cursor: 'default' }}>
+                                <span className="comment-count" style={{marginRight:'8px',color:'#4f8cff',fontWeight:500}}>
+                                    💬 {post.commentCount}
+                                </span>
                                 <button
                                     className={`upvote-btn${userVote === 'upvote' ? ' upvoted' : ''}`}
                                     onClick={e => handleVote(e, post._id, userVote === 'upvote' ? 'remove' : 'upvote')}

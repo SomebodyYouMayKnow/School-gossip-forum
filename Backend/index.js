@@ -32,6 +32,7 @@ app.use("/api/recent-posts", require("./Routes/recentPosts.js"));
 app.use("/api/post", require("./Routes/Post.js"));
 app.use("/api/upvote", require("./Routes/Upvote.js"));
 app.use("/api/vote", require("./Routes/Vote.js"));
+app.use("/api/comment", require("./Routes/Comment.js"));
 
 // Start server
 app.listen(config.port, () => {
