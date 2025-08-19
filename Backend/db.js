@@ -52,10 +52,14 @@ module.exports = {
             );
         } else {
             // Add as a reply to a comment
-            await postsCollection.updateOne(
+            const updateResult = await postsCollection.updateOne(
                 { _id: new ObjectId(postId), "comments._id": new ObjectId(parentCommentId) },
                 { $push: { "comments.$.replies": comment } }
             );
+            if (updateResult.modifiedCount === 0) {
+                console.error('Failed to add reply: parent comment not found', { postId, parentCommentId });
+                throw new Error('Parent comment not found');
+            }
         }
         return comment;
     },

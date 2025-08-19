@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { ObjectId } = require('mongodb');
 
+const userSettings = require('../userSettings.js');
 // POST /api/comment (add comment or reply)
 router.post('/', async (req, res) => {
     const { postId, userId, fullName, text, parentCommentId } = req.body;
@@ -9,7 +11,23 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Missing postId, userId, or text' });
     }
     try {
+        // Enforce timeBetweenComments
+        const dbClient = db.getClient();
+        const usersCollection = dbClient.db('school-gossip-forum').collection('Users');
+    const { ObjectId } = require('mongodb');
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if (user && user.lastComment && !(user.premium || user.admin)) {
+            const now = Date.now();
+            const last = new Date(user.lastComment).getTime();
+            if (now - last < userSettings.timeBetweenComments) {
+                const waitSec = Math.ceil((userSettings.timeBetweenComments - (now - last)) / 1000);
+                return res.status(429).json({ success: false, message: `Please wait ${waitSec} seconds before commenting again.` });
+            }
+        }
+        // Add comment
         const comment = await db.addComment(postId, userId, fullName, text, parentCommentId);
+        // Update lastComment
+    await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
         res.status(200).json({ success: true, comment });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -37,9 +55,25 @@ router.post('/reply', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Missing postId, parentCommentId, userId, or text' });
     }
     try {
+        // Enforce timeBetweenComments for replies too
+        const dbClient = db.getClient();
+        const usersCollection = dbClient.db('school-gossip-forum').collection('Users');
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if (user && user.lastComment && !(user.premium || user.admin)) {
+            const now = Date.now();
+            const last = new Date(user.lastComment).getTime();
+            if (now - last < userSettings.timeBetweenComments) {
+                const waitSec = Math.ceil((userSettings.timeBetweenComments - (now - last)) / 1000);
+                return res.status(429).json({ success: false, message: `Please wait ${waitSec} seconds before commenting again.` });
+            }
+        }
+        // Add reply
         const reply = await db.replyToComment(postId, parentCommentId, userId, fullName, text);
+        // Update lastComment
+    await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
         res.status(200).json({ success: true, reply });
     } catch (error) {
+        console.error('Error in /api/comment/reply:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

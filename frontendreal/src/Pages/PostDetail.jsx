@@ -67,10 +67,16 @@ const PostDetail = () => {
                 fullName,
                 text: commentText.trim()
             });
-            setComments(prev => [...prev, response.data.comment]);
-            setCommentText('');
-        } catch {
-            alert('Failed to add comment.');
+            if (response.data && response.data.success) {
+                setComments(prev => [...prev, response.data.comment]);
+                setCommentText('');
+            }
+        } catch (err) {
+            if (err.response && err.response.data && err.response.data.message) {
+                alert(err.response.data.message);
+            } else {
+                alert('Failed to add comment.');
+            }
         } finally {
             setCommentLoading(false);
         }
@@ -211,8 +217,12 @@ const PostDetail = () => {
                                                         : c
                                                 ));
                                                 setReplyState(s => ({ ...s, [comment._id]: { show: false, text: '', loading: false } }));
-                                            } catch {
-                                                alert('Failed to reply.');
+                                            } catch (err) {
+                                                if (err.response && err.response.data && err.response.data.message) {
+                                                    alert(err.response.data.message);
+                                                } else {
+                                                    alert('Failed to reply.');
+                                                }
                                                 setReplyState(s => ({ ...s, [comment._id]: { ...state, loading: false } }));
                                             }
                                         }}
