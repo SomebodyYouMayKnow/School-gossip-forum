@@ -1,3 +1,4 @@
+// (removed misplaced upvotePost function)
 const MongoClient = require("mongodb").MongoClient;
 const crypto = require("crypto");
 const config = require("./config.js");
@@ -183,14 +184,53 @@ module.exports = {
             throw error;
         }
     },
-    getRecentPosts: async function (limit = 10) {
+    getRecentPosts: async function (limit = 10, skip = 0) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
         const posts = await postsCollection
-        .find({})
-        .sort({ createdAt: -1 }) // or use creationDate if that's your field
-        .limit(limit)
-        .toArray();
-    return posts;
+            .find({})
+            .sort({ createdAt: -1 }) // or use creationDate if that's your field
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+        return posts;
+    },
+
+    // Upvote, downvote, or remove vote for a post
+    votePost: async function (postId, userId, action) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        let update = {};
+        if (action === 'upvote') {
+            update = {
+                $addToSet: { upvotes: userId },
+                $pull: { downvotes: userId }
+            };
+        } else if (action === 'downvote') {
+            update = {
+                $addToSet: { downvotes: userId },
+                $pull: { upvotes: userId }
+            };
+        } else if (action === 'remove') {
+            update = {
+                $pull: { upvotes: userId, downvotes: userId }
+            };
+        } else {
+            throw new Error('Invalid vote action');
+        }
+        await postsCollection.updateOne(
+            { _id: new ObjectId(postId) },
+            update
+        );
+        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        return {
+            upvotes: post.upvotes ? post.upvotes.length : 0,
+            downvotes: post.downvotes ? post.downvotes.length : 0,
+            userVote: post.upvotes && post.upvotes.includes(userId)
+                ? 'upvote'
+                : post.downvotes && post.downvotes.includes(userId)
+                ? 'downvote'
+                : null
+        };
     },
 };

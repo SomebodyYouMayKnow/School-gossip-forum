@@ -6,16 +6,25 @@ import './Pages.css';
 
 
 
+
 const ViewPosts = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const POSTS_PER_PAGE = 10;
 
+    const [total, setTotal] = useState(null);
     useEffect(() => {
         const fetchPosts = async () => {
+            setLoading(true);
             try {
-                const response = await axios.get('http://localhost:5555/api/recent-posts');
-                setPosts(response.data.posts || []);
+                const response = await axios.get(`http://localhost:5555/api/recent-posts?limit=${POSTS_PER_PAGE}&skip=${(page-1)*POSTS_PER_PAGE}`);
+                const newPosts = response.data.posts || [];
+                setPosts(prev => page === 1 ? newPosts : [...prev, ...newPosts]);
+                setTotal(response.data.total);
+                setHasMore(((page - 1) * POSTS_PER_PAGE + newPosts.length) < response.data.total);
             } catch (err) {
                 setError('Failed to load posts');
             } finally {
@@ -23,7 +32,19 @@ const ViewPosts = () => {
             }
         };
         fetchPosts();
-    }, []);
+        // eslint-disable-next-line
+    }, [page]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (loading || !hasMore) return;
+            if (window.innerHeight + document.documentElement.scrollTop + 100 >= document.documentElement.offsetHeight) {
+                setPage(prev => prev + 1);
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [loading, hasMore]);
 
 
     const navigate = useNavigate();
@@ -39,22 +60,81 @@ const ViewPosts = () => {
         navigate(`/posts?postid=${id}`);
     };
 
+    // Get user ID from cookie (assumes user cookie contains userId)
+    let userId = null;
+    try {
+        const userCookie = Cookies.get('user');
+        if (userCookie) {
+            const userData = JSON.parse(userCookie);
+            userId = userData.userId || userData._id;
+        }
+    } catch {}
+
+
+    const handleVote = async (e, postId, action) => {
+        e.stopPropagation();
+        if (!userId) {
+            alert('You must be logged in to vote.');
+            return;
+        }
+        try {
+            const response = await axios.post('http://localhost:5555/api/vote', { postId, userId, action });
+            setPosts(prevPosts => prevPosts.map(post =>
+                post._id === postId
+                    ? {
+                        ...post,
+                        upvotes: Array(response.data.upvotes).fill('x'), // just for count
+                        downvotes: Array(response.data.downvotes).fill('x'),
+                        userVote: response.data.userVote
+                    }
+                    : post
+            ));
+        } catch (err) {
+            alert('Failed to vote.');
+        }
+    };
+
+    const getUserVote = (post) => {
+        if (!userId || !post) return null;
+        if (post.userVote) return post.userVote;
+        if (post.upvotes && post.upvotes.includes(userId)) return 'upvote';
+        if (post.downvotes && post.downvotes.includes(userId)) return 'downvote';
+        return null;
+    };
+
     return (
         <div className="posts-container">
             <h2>Recent Posts</h2>
-            {loading && <p>Loading...</p>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
             {posts.length === 0 && !loading && !error && <p>No posts found.</p>}
             <div className="posts-list">
-                {posts.map(post => (
-                    <div className="post-card" key={post._id} onClick={() => handlePostClick(post._id)} style={{ cursor: 'pointer' }}>
-                        <h3 className="post-title">{post.postTitle}</h3>
-                        <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
-                        <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
-                        <div className="post-toggle-tip">Click to view full post</div>
-                    </div>
-                ))}
+                {posts.map(post => {
+                    const userVote = getUserVote(post);
+                    return (
+                        <div className="post-card" key={post._id} onClick={e => {
+                            // Only navigate if not clicking a button
+                            if (e.target.tagName !== 'BUTTON') handlePostClick(post._id);
+                        }} style={{ cursor: 'pointer' }}>
+                            <h3 className="post-title">{post.postTitle}</h3>
+                            <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
+                            <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', cursor: 'default' }}>
+                                <button
+                                    className={`upvote-btn${userVote === 'upvote' ? ' upvoted' : ''}`}
+                                    onClick={e => handleVote(e, post._id, userVote === 'upvote' ? 'remove' : 'upvote')}
+                                >▲ Upvote {post.upvotes ? post.upvotes.length : 0}</button>
+                                <button
+                                    className={`downvote-btn${userVote === 'downvote' ? ' upvoted' : ''}`}
+                                    onClick={e => handleVote(e, post._id, userVote === 'downvote' ? 'remove' : 'downvote')}
+                                >▼ Downvote {post.downvotes ? post.downvotes.length : 0}</button>
+                            </div>
+                            <div className="post-toggle-tip">Click to view full post</div>
+                        </div>
+                    );
+                })}
             </div>
+            {loading && <p>Loading...</p>}
+            {!hasMore && posts.length > 0 && <p style={{textAlign:'center',color:'#888',marginTop:'20px'}}>No more posts.</p>}
         </div>
     );
 }

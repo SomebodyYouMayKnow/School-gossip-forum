@@ -1,3 +1,43 @@
+.downvote-btn {
+    background: #fff3f3;
+    color: #ff4f4f;
+    border: 1.5px solid #ff4f4f;
+    border-radius: 5px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 10px 0 0 0;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border 0.2s;
+    outline: none;
+}
+.downvote-btn.upvoted, .downvote-btn:disabled {
+    background: #ff4f4f;
+    color: #fff;
+    border: 1.5px solid #ff4f4f;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+.upvote-btn {
+    background: #f3f7ff;
+    color: #4f8cff;
+    border: 1.5px solid #4f8cff;
+    border-radius: 5px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 10px 0 0 0;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border 0.2s;
+    outline: none;
+}
+.upvote-btn.upvoted, .upvote-btn:disabled {
+    background: #4f8cff;
+    color: #fff;
+    border: 1.5px solid #4f8cff;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
 .post-preview {
     color: #444;
     font-style: italic;
@@ -38,6 +78,11 @@
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(79,140,255,0.06);
     border: 1px solid #e3e8f0;
+    cursor: pointer;
+}
+
+.post-card button {
+    cursor: default;
 }
 
 .post-title {

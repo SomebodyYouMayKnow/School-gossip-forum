@@ -6,12 +6,14 @@ const db = require('../db');
 router.get('/', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        const posts = await db.getRecentPosts(limit);
-        console.log("Recent posts fetched:", posts); // Debugging log
-        res.status(200).json({ success: true, posts });
+        const skip = parseInt(req.query.skip) || 0;
+        const posts = await db.getRecentPosts(limit, skip);
+        const dbInstance = db.getClient().db('school-gossip-forum');
+        const total = await dbInstance.collection('Posts').countDocuments();
+        res.status(200).json({ success: true, posts, total });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
-    }   
+    }
 });
 
 module.exports = router;
