@@ -159,10 +159,15 @@ const PostDetail = () => {
                         const liked = comment.likes && userId && comment.likes.includes(userId);
                         const replies = comment.replies || [];
                         const state = replyState[comment._id] || { show: false, text: '', loading: false };
+                        // Check if admin (assume comment.admin or comment.userId is admin)
+                        const isAdmin = comment.admin || comment.isAdmin;
                         return (
                             <div className="comment" key={comment._id}>
                                 <div className="comment-meta">
-                                    <b>{comment.fullName || comment.username || 'Anonymous'}</b>
+                                    <b style={isAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
+                                        {comment.fullName || comment.username || 'Anonymous'}
+                                        {isAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                                    </b>
                                     <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}</span>
                                 </div>
                                 <div className="comment-text">{comment.text}</div>
@@ -244,15 +249,21 @@ const PostDetail = () => {
                                 )}
                                 {replies.length > 0 && (
                                     <div style={{marginLeft:24,marginTop:8}}>
-                                        {replies.map(reply => (
-                                            <div className="comment" key={reply._id} style={{background:'#f5f7fa'}}>
-                                                <div className="comment-meta">
-                                                    <b>{reply.fullName || reply.username || 'Anonymous'}</b>
-                                                    <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{reply.createdAt ? new Date(reply.createdAt).toLocaleString() : ''}</span>
+                                        {replies.map(reply => {
+                                            const isAdminReply = reply.admin || reply.isAdmin;
+                                            return (
+                                                <div className="comment" key={reply._id} style={{background:'#f5f7fa'}}>
+                                                    <div className="comment-meta">
+                                                        <b style={isAdminReply ? { color: 'red', fontWeight: 'bold' } : {}}>
+                                                            {reply.fullName || reply.username || 'Anonymous'}
+                                                            {isAdminReply && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                                                        </b>
+                                                        <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{reply.createdAt ? new Date(reply.createdAt).toLocaleString() : ''}</span>
+                                                    </div>
+                                                    <div className="comment-text">{reply.text}</div>
                                                 </div>
-                                                <div className="comment-text">{reply.text}</div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>

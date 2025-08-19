@@ -26,9 +26,16 @@ router.post('/', async (req, res) => {
                 return;
             } else if (String(newPost.email) == String(email) && String(newPost.userID) == String(userId) && String(newPost.fullName) == String(userName) && String(newPost.postTitle) == String(postTitle) && String(newPost.postContent) == String(postContent)) {
                 let user = await db.getUserById(newPost.userID);
-                // If user is premium, skip cooldown
-                if (user.premium || user.admin) {
-                    Utils.sendResult(res, { success: true, message: 'Post created successfully', newPost });
+                // Debug log: print user object and admin/premium status
+                console.log('DEBUG: user fetched for cooldown check:', user);
+                console.log('DEBUG: user.premium:', user && user.premium, 'user.admin:', user && user.admin);
+                // If user is premium or admin, skip cooldown
+                // Accept boolean true or string 'true' for premium/admin
+                const isPremium = user && (user.premium === true || user.premium === 'true');
+                const isAdmin = user && (user.admin === true || user.admin === 'true');
+                if (isPremium || isAdmin) {
+                    console.log('DEBUG: User is premium or admin, skipping cooldown.');
+                    Utils.sendResult(res, { success: true, message: 'Post created successfully', postId: newPost._id, newPost });
                     db.updateUserLastPost(userId, new Date());
                     return;
                 }
@@ -38,7 +45,7 @@ router.post('/', async (req, res) => {
                     db.deletePost(newPost._id);
                     return;
                 } else {
-                    Utils.sendResult(res, { success: true, message: 'Post created successfully', newPost });
+                    Utils.sendResult(res, { success: true, message: 'Post created successfully', postId: newPost._id, newPost });
                     db.updateUserLastPost(userId, new Date());
                     return;
                 }

@@ -29,11 +29,13 @@ module.exports = {
     addComment: async function (postId, userId, fullName, commentText, parentCommentId = null) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
-        // Always fetch the user's fullName from the Users collection
+        // Always fetch the user's fullName and admin status from the Users collection
         let userFullName = fullName;
+        let isAdmin = false;
         try {
             const user = await db.collection('Users').findOne({ _id: new ObjectId(userId) });
             if (user && user.fullName) userFullName = user.fullName;
+            if (user && user.admin) isAdmin = true;
         } catch {}
         const comment = {
             _id: new ObjectId(),
@@ -43,7 +45,8 @@ module.exports = {
             createdAt: new Date(),
             likes: [],
             replies: [],
-            parent: parentCommentId || null
+            parent: parentCommentId || null,
+            admin: isAdmin
         };
         if (!parentCommentId) {
             await postsCollection.updateOne(

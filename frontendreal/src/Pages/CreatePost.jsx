@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import ReactQuill from 'react-quill';
@@ -7,6 +8,7 @@ import 'react-quill/dist/quill.snow.css';
 const CreatePost = () => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -33,9 +35,15 @@ const CreatePost = () => {
             });
             console.log('Create post response:', response.data);
             if (response.data.success) {
-                alert('Post created successfully');
+                // Redirect to the new post's URL (assuming response.data.post._id)
+                const postId = response.data.post?._id || response.data.postId;
+                if (postId) {
+                    navigate(`/posts?postid=${postId}`);
+                } else {
+                    alert('Post created, but could not find post ID to redirect.');
+                }
             } else {
-                alert(response.data.error.message);
+                alert(response.data.error?.message || 'Failed to create post.');
             }
         } catch (error) {
             alert('Error creating post: ' + error.message);
