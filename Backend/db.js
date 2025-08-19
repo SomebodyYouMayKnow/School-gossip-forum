@@ -255,15 +255,49 @@ module.exports = {
             throw error;
         }
     },
-    getRecentPosts: async function (limit = 10, skip = 0) {
+    /**
+     * Get posts with sorting and filtering
+     * @param {Object} options
+     *   - limit: number
+     *   - skip: number
+     *   - sortBy: 'recent'|'old'|'upvotes'|'downvotes'|'comments'
+     *   - order: 1|-1
+     *   - filter: MongoDB filter object
+     */
+    getRecentPosts: async function (options = {}) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
-        const posts = await postsCollection
-            .find({})
-            .sort({ createdAt: -1 }) // or use creationDate if that's your field
-            .skip(skip)
-            .limit(limit)
-            .toArray();
+        const {
+            limit = 10,
+            skip = 0,
+            sortBy = 'recent',
+            order = -1,
+            filter = {}
+        } = options;
+
+        let sort = {};
+        if (sortBy === 'recent') sort = { createdAt: -1 };
+        else if (sortBy === 'old') sort = { createdAt: 1 };
+        else if (sortBy === 'upvotes') sort = { upvotesCount: order };
+        else if (sortBy === 'downvotes') sort = { downvotesCount: order };
+        else if (sortBy === 'comments') sort = { commentsCount: order };
+        else sort = { createdAt: -1 };
+
+        // Use aggregation to compute counts for upvotes, downvotes, comments
+        const pipeline = [
+            { $match: filter },
+            {
+                $addFields: {
+                    upvotesCount: { $size: { $ifNull: ["$upvotes", []] } },
+                    downvotesCount: { $size: { $ifNull: ["$downvotes", []] } },
+                    commentsCount: { $size: { $ifNull: ["$comments", []] } }
+                }
+            },
+            { $sort: sort },
+            { $skip: skip },
+            { $limit: limit }
+        ];
+        const posts = await postsCollection.aggregate(pipeline).toArray();
         return posts;
     },
 

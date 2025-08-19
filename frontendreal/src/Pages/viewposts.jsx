@@ -8,36 +8,35 @@ import './Pages.css';
 
 
 const ViewPosts = () => {
+
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const POSTS_PER_PAGE = 10;
-
     const [total, setTotal] = useState(null);
+
+    // Sorting and filtering state
+    const [sortBy, setSortBy] = useState('recent');
+    const [order, setOrder] = useState('desc');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
 
     useEffect(() => {
         const fetchPosts = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`http://localhost:5555/api/recent-posts?limit=${POSTS_PER_PAGE}&skip=${(page-1)*POSTS_PER_PAGE}`);
+                let params = `limit=${POSTS_PER_PAGE}&skip=${(page-1)*POSTS_PER_PAGE}`;
+                params += `&sortBy=${sortBy}`;
+                params += `&order=${order}`;
+                if (dateFrom) params += `&dateFrom=${dateFrom}`;
+                if (dateTo) params += `&dateTo=${dateTo}`;
+                const response = await axios.get(`http://localhost:5555/api/recent-posts?${params}`);
                 const newPosts = response.data.posts || [];
-                // Fetch comment counts for each post
-                const commentCounts = await Promise.all(
-                    newPosts.map(async post => {
-                        try {
-                            const res = await axios.get(`http://localhost:5555/api/comment/${post._id}`);
-                            return { postId: post._id, count: (res.data.comments || []).length };
-                        } catch {
-                            return { postId: post._id, count: 0 };
-                        }
-                    })
-                );
-                const postsWithComments = newPosts.map(post => {
-                    const found = commentCounts.find(c => c.postId === post._id);
-                    return { ...post, commentCount: found ? found.count : 0 };
-                });
+                // commentCount is now provided by backend as commentsCount
+                const postsWithComments = newPosts.map(post => ({ ...post, commentCount: post.commentsCount ?? 0 }));
                 setPosts(prev => page === 1 ? postsWithComments : [...prev, ...postsWithComments]);
                 setTotal(response.data.total);
                 setHasMore(((page - 1) * POSTS_PER_PAGE + newPosts.length) < response.data.total);
@@ -49,7 +48,7 @@ const ViewPosts = () => {
         };
         fetchPosts();
         // eslint-disable-next-line
-    }, [page]);
+    }, [page, sortBy, order, dateFrom, dateTo]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -118,9 +117,35 @@ const ViewPosts = () => {
         return null;
     };
 
+
     return (
         <div className="posts-container">
-            <h2>Recent Posts</h2>
+            <h2>Posts</h2>
+            {/* Sorting and filtering controls */}
+            <div style={{display:'flex',gap:'16px',marginBottom:'18px',flexWrap:'wrap',alignItems:'center'}}>
+                <label>Sort by:
+                    <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1); }} style={{marginLeft:8}}>
+                        <option value="recent">Most Recent</option>
+                        <option value="old">Oldest</option>
+                        <option value="upvotes">Most Upvotes</option>
+                        <option value="downvotes">Most Downvotes</option>
+                        <option value="comments">Most Comments</option>
+                    </select>
+                </label>
+                <label>Order:
+                    <select value={order} onChange={e => { setOrder(e.target.value); setPage(1); }} style={{marginLeft:8}}>
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
+                </label>
+                <label>From:
+                    <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} style={{marginLeft:8}} />
+                </label>
+                <label>To:
+                    <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} style={{marginLeft:8}} />
+                </label>
+                <button onClick={() => { setSortBy('recent'); setOrder('desc'); setDateFrom(''); setDateTo(''); setPage(1); }} style={{marginLeft:8}}>Reset</button>
+            </div>
             {error && <p style={{ color: 'red' }}>{error}</p>}
             {posts.length === 0 && !loading && !error && <p>No posts found.</p>}
             <div className="posts-list">
@@ -128,7 +153,6 @@ const ViewPosts = () => {
                     const userVote = getUserVote(post);
                     return (
                         <div className="post-card" key={post._id} onClick={e => {
-                            // Only navigate if not clicking a button
                             if (e.target.tagName !== 'BUTTON') handlePostClick(post._id);
                         }} style={{ cursor: 'pointer' }}>
                             <h3 className="post-title">{post.postTitle}</h3>
