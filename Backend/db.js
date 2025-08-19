@@ -56,8 +56,12 @@ module.exports = {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Posts');
         try {
-            return await usersCollection.findOne({ _id: new ObjectId(id) });
+            console.log('getPostById called with id:', id);
+            const result = await usersCollection.findOne({ _id: new ObjectId(id) });
+            console.log('getPostById result:', result);
+            return result;
         } catch (error) {
+            console.error('getPostById error:', error);
             return null;
         }
     },

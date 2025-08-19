@@ -8,6 +8,7 @@ import './Pages/Pages.css';
 import Test from './Pages/test';
 import CreatePostPage from './Pages/CreatePost';
 import ViewPosts from './Pages/viewposts';
+import PostDetail from './Pages/PostDetail';
 function App() {
   return (
     <>
@@ -20,7 +21,8 @@ function App() {
         <Route path='/Register' element={<Register />} />
         <Route path="/test" element={<Test />} />
         <Route path='/Createpost' element={<CreatePostPage />} />
-        <Route path='/viewposts' element={<ViewPosts />} />
+  <Route path='/viewposts' element={<ViewPosts />} />
+  <Route path='/posts' element={<PostDetail />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </>
