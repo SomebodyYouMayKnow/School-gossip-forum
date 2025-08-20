@@ -151,11 +151,24 @@ const ViewPosts = () => {
             <div className="posts-list">
                 {posts.map(post => {
                     const userVote = getUserVote(post);
+                    // Highlight admin posts for regular users
+                    const isAdminPost = post.admin === true || post.admin === 'true';
+                    let isCurrentUserAdmin = false;
+                    try {
+                        const userCookie = Cookies.get('user');
+                        if (userCookie) {
+                            const userData = JSON.parse(userCookie);
+                            isCurrentUserAdmin = userData.admin === true || userData.admin === 'true';
+                        }
+                    } catch {}
                     return (
                         <div className="post-card" key={post._id} onClick={e => {
                             if (e.target.tagName !== 'BUTTON') handlePostClick(post._id);
                         }} style={{ cursor: 'pointer' }}>
-                            <h3 className="post-title">{post.postTitle}</h3>
+                            <h3 className="post-title" style={isAdminPost && !isCurrentUserAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
+                                {post.postTitle}
+                                {isAdminPost && !isCurrentUserAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                            </h3>
                             <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
                             <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
                             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', cursor: 'default' }}>

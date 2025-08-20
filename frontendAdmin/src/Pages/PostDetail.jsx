@@ -120,10 +120,23 @@ const PostDetail = () => {
     if (error) return <div className="posts-container"><p style={{ color: 'red' }}>{error}</p></div>;
     if (!post) return <div className="posts-container"><p>Post not found.</p></div>;
 
+    // Highlight admin post for regular users
+    const isAdminPost = post.admin === true || post.admin === 'true';
+    let isCurrentUserAdmin = false;
+    try {
+        const userCookie = Cookies.get('user');
+        if (userCookie) {
+            const userData = JSON.parse(userCookie);
+            isCurrentUserAdmin = userData.admin === true || userData.admin === 'true';
+        }
+    } catch {}
     return (
         <div className="posts-container">
             <div className="post-card">
-                <h2 className="post-title">{post.postTitle}</h2>
+                <h2 className="post-title" style={isAdminPost && !isCurrentUserAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
+                    {post.postTitle}
+                    {isAdminPost && !isCurrentUserAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                </h2>
                 <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
                 <div className="post-content" dangerouslySetInnerHTML={{ __html: post.postContent }} />
                 <div style={{ display: 'flex', gap: '12px', marginTop: '18px', alignItems: 'center' }}>

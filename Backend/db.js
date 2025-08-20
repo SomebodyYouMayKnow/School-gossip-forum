@@ -184,8 +184,12 @@ module.exports = {
     },
     createPost: async function (email, userID, fullName, postTitle, postContent) {
         const db = mongoClient.db('school-gossip-forum');
-        const usersCollection = db.collection('Posts');
-        let result = await usersCollection.insertOne({
+        const usersCollection = db.collection('Users');
+        const postsCollection = db.collection('Posts');
+        // Fetch user to get admin status
+        let user = await usersCollection.findOne({ _id: new ObjectId(userID) });
+        let isAdmin = user && (user.admin === true || user.admin === 'true');
+        let result = await postsCollection.insertOne({
             fullName: fullName,
             creationDate: new Date(),
             comments: [],
@@ -193,9 +197,9 @@ module.exports = {
             postTitle: postTitle,
             postContent: postContent,
             userID: userID,
-            createdAt: new Date()
+            createdAt: new Date(),
+            admin: isAdmin
         });
-
         return await this.getPostById(result.insertedId);
     },
     deletePost: async function (postId) {
