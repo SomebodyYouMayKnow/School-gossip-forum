@@ -318,6 +318,37 @@ const ViewPosts = () => {
                                     onClick={e => handleVote(e, post._id, userVote === 'downvote' ? 'remove' : 'downvote')}
                                     disabled={post.deleted || post.commentsDisabled}
                                 >▼ Downvote {post.downvotes ? post.downvotes.length : 0}</button>
+                                {userId && post.userID === userId && !post.deleted && !isCurrentUserAdmin && (
+                                    <button
+                                        style={{
+                                            background: '#d11a2a',
+                                            color: '#fff',
+                                            border: 'none',
+                                            padding: '8px 16px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            marginLeft: 'auto'
+                                        }}
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+                                                try {
+                                                    await axios.delete(`http://localhost:5555/api/post/${post._id}`, {
+                                                        data: { userId }
+                                                    });
+                                                    // Remove the post from the local state
+                                                    setPosts(prevPosts => prevPosts.filter(p => p._id !== post._id));
+                                                    alert('Post deleted successfully');
+                                                } catch (err) {
+                                                    const errorMessage = err.response?.data?.message || 'Failed to delete post';
+                                                    alert(errorMessage);
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        🗑️ Delete
+                                    </button>
+                                )}
                             </div>
                             <div className="post-toggle-tip">Click to view full post</div>
                         </div>

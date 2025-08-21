@@ -22,6 +22,24 @@ router.delete('/', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// DELETE /api/comment/user (user can delete their own comment)
+router.delete('/user', async (req, res) => {
+    const { postId, commentId, userId } = req.body;
+    if (!postId || !commentId || !userId) {
+        return res.status(400).json({ success: false, message: 'Missing postId, commentId, or userId' });
+    }
+    try {
+        const result = await db.deleteUserComment(postId, commentId, userId);
+        if (result.success) {
+            return res.status(200).json({ success: true, type: result.type });
+        } else {
+            return res.status(403).json({ success: false, message: result.message });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 const db = require('../db');
 const { ObjectId } = require('mongodb');
 

@@ -14,12 +14,14 @@ router.post('/', async (req, res) => {
         const email = req.body.userCookie.email;
         const postTitle = req.body.postTitle;
         const postContent = req.body.postContent;
+        const category = req.body.category || 'General'; // Add category support
+        
         const result = await db.checkCookie(cookieData);
         if (!result.valid) {
             Utils.sendError(res, 'Invalid cookie, please log in again.', result.message);
             return;
         } else if (result.valid) {
-            const newPost = await db.createPost(email, userId, userName, postTitle, postContent);
+            const newPost = await db.createPost(email, userId, userName, postTitle, postContent, category);
             if (newPost.fullName == "" || newPost.postTitle == "" || newPost.postContent == "" || newPost.userId == "" || newPost.email == "") {
                 Utils.sendError(res, 'Please fill out all the fields');
                 db.deletePost(newPost._id);

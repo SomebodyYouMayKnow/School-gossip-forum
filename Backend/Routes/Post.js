@@ -66,4 +66,25 @@ router.patch('/:id/delete', async (req, res) => {
     }
 });
 
+// DELETE /api/post/:id (user can delete their own post)
+router.delete('/:id', async (req, res) => {
+    const { userId } = req.body;
+    if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ success: false, message: 'Invalid post ID' });
+    }
+    if (!userId) {
+        return res.status(400).json({ success: false, message: 'User ID required' });
+    }
+    try {
+        const result = await db.deleteUserPost(req.params.id, userId);
+        if (result.success) {
+            res.status(200).json({ success: true, message: result.message });
+        } else {
+            res.status(403).json({ success: false, message: result.message });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

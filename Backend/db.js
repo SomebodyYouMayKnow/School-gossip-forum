@@ -49,6 +49,50 @@ module.exports = {
         }
         return { success: false, message: 'Comment not found' };
     },
+
+    // Delete a comment or reply by its owner (user can only delete their own comments)
+    deleteUserComment: async function (postId, commentId, userId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            // First check if the post exists
+            const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+            if (!post) {
+                return { success: false, message: 'Post not found' };
+            }
+            
+            // Try to find and remove as top-level comment
+            const commentResult = await postsCollection.updateOne(
+                { 
+                    _id: new ObjectId(postId),
+                    "comments._id": new ObjectId(commentId),
+                    "comments.userId": userId
+                },
+                { $pull: { comments: { _id: new ObjectId(commentId) } } }
+            );
+            if (commentResult.modifiedCount === 1) {
+                return { success: true, type: 'comment' };
+            }
+            
+            // Try to find and remove as a reply
+            const replyResult = await postsCollection.updateOne(
+                { 
+                    _id: new ObjectId(postId),
+                    "comments.replies._id": new ObjectId(commentId),
+                    "comments.replies.userId": userId
+                },
+                { $pull: { "comments.$.replies": { _id: new ObjectId(commentId) } } }
+            );
+            if (replyResult.modifiedCount === 1) {
+                return { success: true, type: 'reply' };
+            }
+            
+            // If we get here, either the comment doesn't exist or the user doesn't own it
+            return { success: false, message: 'Comment not found or you do not have permission to delete it' };
+        } catch (error) {
+            return { success: false, message: 'Error deleting comment' };
+        }
+    },
     getClient: function () {
         return mongoClient;
     },
@@ -211,7 +255,7 @@ module.exports = {
             return { success: false, message: 'Error updating user lastPost' };
         }
     },
-    createPost: async function (email, userID, fullName, postTitle, postContent) {
+    createPost: async function (email, userID, fullName, postTitle, postContent, category = 'General') {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Users');
         const postsCollection = db.collection('Posts');
@@ -227,7 +271,8 @@ module.exports = {
             postContent: postContent,
             userID: userID,
             createdAt: new Date(),
-            admin: isAdmin
+            admin: isAdmin,
+            category: category
         });
         return await this.getPostById(result.insertedId);
     },
@@ -240,6 +285,34 @@ module.exports = {
                 return { success: true, message: 'Post deleted successfully' };
             } else {
                 return { success: false, message: 'Post not found' };
+            }
+        } catch (error) {
+            return { success: false, message: 'Error deleting post' };
+        }
+    },
+
+    // Delete a post by its owner (user can only delete their own posts)
+    deleteUserPost: async function (postId, userId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            // First check if the post exists and belongs to the user
+            const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+            if (!post) {
+                return { success: false, message: 'Post not found' };
+            }
+            
+            // Check if the user owns the post
+            if (post.userID !== userId) {
+                return { success: false, message: 'You can only delete your own posts' };
+            }
+            
+            // Delete the post
+            const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
+            if (result.deletedCount === 1) {
+                return { success: true, message: 'Post deleted successfully' };
+            } else {
+                return { success: false, message: 'Failed to delete post' };
             }
         } catch (error) {
             return { success: false, message: 'Error deleting post' };
@@ -337,31 +410,295 @@ module.exports = {
             filter = {}
         } = options;
 
-        let sort = {};
-        if (sortBy === 'recent') sort = { createdAt: -1 };
-        else if (sortBy === 'old') sort = { createdAt: 1 };
-        else if (sortBy === 'upvotes') sort = { upvotesCount: order };
-        else if (sortBy === 'downvotes') sort = { downvotesCount: order };
-        else if (sortBy === 'comments') sort = { commentsCount: order };
-        else sort = { createdAt: -1 };
+        console.log('getRecentPosts called with:', { limit, skip, sortBy, order, filter });
 
-        // Exclude hidden posts from feed
-        const match = { ...filter, $or: [ { hidden: { $exists: false } }, { hidden: false } ] };
-        const pipeline = [
-            { $match: match },
-            {
-                $addFields: {
-                    upvotesCount: { $size: { $ifNull: ["$upvotes", []] } },
-                    downvotesCount: { $size: { $ifNull: ["$downvotes", []] } },
-                    commentsCount: { $size: { $ifNull: ["$comments", []] } }
+        // Build filter object - always exclude deleted posts by default
+        let filterObj = { 
+            ...filter,
+            deleted: { $ne: true }  // Always exclude deleted posts
+        };
+
+        console.log('Final filter:', filterObj);
+
+        try {
+            // First, let's check what fields actually exist in the posts
+            const samplePost = await postsCollection.findOne({});
+            console.log('Sample post fields:', samplePost ? Object.keys(samplePost) : 'No posts found');
+
+            // Use a simpler approach for sorting - sort by the field that exists
+            let actualSort = {};
+            if (sortBy === 'recent' || sortBy === 'old') {
+                if (samplePost && samplePost.creationDate) {
+                    actualSort = { creationDate: order };
+                } else if (samplePost && samplePost.createdAt) {
+                    actualSort = { createdAt: order };
+                } else {
+                    actualSort = { _id: -1 }; // fallback to ID sorting
                 }
-            },
-            { $sort: sort },
-            { $skip: skip },
-            { $limit: limit }
-        ];
-        const posts = await postsCollection.aggregate(pipeline).toArray();
-        return posts;
+            } else if (sortBy === 'upvotes') {
+                // Check if upvotes field exists, if not, sort by _id
+                if (samplePost && samplePost.upvotes) {
+                    // We'll add a computed field for upvotes count in the pipeline
+                    actualSort = { upvotesCount: order };
+                } else {
+                    actualSort = { _id: -1 };
+                }
+            } else if (sortBy === 'downvotes') {
+                // Check if downvotes field exists, if not, sort by _id
+                if (samplePost && samplePost.downvotes) {
+                    // We'll add a computed field for downvotes count in the pipeline
+                    actualSort = { downvotesCount: order };
+                } else {
+                    actualSort = { _id: -1 };
+                }
+            } else if (sortBy === 'comments') {
+                // For comments, we'll sort by the computed commentsCount field
+                actualSort = { commentsCount: order };
+            } else {
+                // Default sorting
+                if (samplePost && samplePost.creationDate) {
+                    actualSort = { creationDate: -1 };
+                } else if (samplePost && samplePost.createdAt) {
+                    actualSort = { createdAt: -1 };
+                } else {
+                    actualSort = { _id: -1 };
+                }
+            }
+
+            console.log('Actual sort field:', actualSort);
+
+            const pipeline = [
+                { $match: filterObj },
+                {
+                    $addFields: {
+                        commentsCount: { $size: { $ifNull: ['$comments', []] } },
+                        upvotesCount: { $size: { $ifNull: ['$upvotes', []] } },
+                        downvotesCount: { $size: { $ifNull: ['$downvotes', []] } }
+                    }
+                },
+                { $sort: actualSort },
+                { $skip: parseInt(skip) },
+                { $limit: parseInt(limit) }
+            ];
+
+            console.log('MongoDB pipeline:', JSON.stringify(pipeline, null, 2));
+
+            const posts = await postsCollection.aggregate(pipeline).toArray();
+            const total = await postsCollection.countDocuments(filterObj);
+
+            console.log(`Found ${posts.length} posts, total: ${total}`);
+
+            return { posts, total };
+        } catch (error) {
+            console.error('Error in getRecentPosts:', error);
+            throw error;
+        }
+    },
+
+    // Search posts by title, content, and category
+    searchPosts: async function (searchQuery, options = {}) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        const {
+            limit = 20,
+            skip = 0,
+            sortBy = 'recent',
+            order = -1,
+            category = null
+        } = options;
+
+        console.log('searchPosts called with:', { searchQuery, limit, skip, sortBy, order, category });
+
+        // Build search filter
+        let searchFilter = {
+            $or: [
+                { postTitle: { $regex: searchQuery, $options: 'i' } },
+                { postContent: { $regex: searchQuery, $options: 'i' } }
+            ],
+            deleted: { $ne: true }
+        };
+
+        // Add category filter if specified
+        if (category && category !== 'All') {
+            searchFilter.category = category;
+        } else {
+            // If no specific category, also search within category names
+            searchFilter.$or.push({ category: { $regex: searchQuery, $options: 'i' } });
+        }
+
+        // Build sort object - handle both creationDate and createdAt fields
+        let sort = {};
+        const samplePost = await postsCollection.findOne({});
+        
+        if (sortBy === 'recent' || sortBy === 'old') {
+            // Check what date field exists in the collection
+            if (samplePost && samplePost.creationDate) {
+                sort = { creationDate: order };
+            } else if (samplePost && samplePost.createdAt) {
+                sort = { createdAt: order };
+            } else {
+                sort = { _id: -1 }; // fallback to ID sorting
+            }
+        } else if (sortBy === 'upvotes') {
+            // Check if upvotes field exists, if not, sort by _id
+            if (samplePost && samplePost.upvotes) {
+                // We'll add a computed field for upvotes count in the pipeline
+                sort = { upvotesCount: order };
+            } else {
+                sort = { _id: -1 };
+            }
+        } else if (sortBy === 'downvotes') {
+            // Check if downvotes field exists, if not, sort by _id
+            if (samplePost && samplePost.downvotes) {
+                // We'll add a computed field for downvotes count in the pipeline
+                sort = { downvotesCount: order };
+            } else {
+                sort = { _id: -1 };
+            }
+        } else if (sortBy === 'comments') {
+            // For comments, we'll sort by the computed commentsCount field
+            sort = { commentsCount: order };
+        } else {
+            // Default sorting
+            if (samplePost && samplePost.creationDate) {
+                sort = { creationDate: -1 };
+            } else if (samplePost && samplePost.createdAt) {
+                sort = { createdAt: -1 };
+            } else {
+                sort = { _id: -1 };
+            }
+        }
+
+        console.log('Search filter:', JSON.stringify(searchFilter, null, 2));
+        console.log('Search sort:', sort);
+
+        try {
+            const pipeline = [
+                { $match: searchFilter },
+                {
+                    $addFields: {
+                        commentsCount: { $size: { $ifNull: ['$comments', []] } },
+                        upvotesCount: { $size: { $ifNull: ['$upvotes', []] } },
+                        downvotesCount: { $size: { $ifNull: ['$downvotes', []] } }
+                    }
+                },
+                { $sort: sort },
+                { $skip: parseInt(skip) },
+                { $limit: parseInt(limit) }
+            ];
+
+            console.log('Search pipeline:', JSON.stringify(pipeline, null, 2));
+
+            const posts = await postsCollection.aggregate(pipeline).toArray();
+            const total = await postsCollection.countDocuments(searchFilter);
+
+            console.log(`Search found ${posts.length} posts, total: ${total}`);
+
+            return { posts, total };
+        } catch (error) {
+            console.error('Error in searchPosts:', error);
+            throw error;
+        }
+    },
+
+    // Get all available categories
+    getCategories: async function () {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            const categories = await postsCollection.distinct('category');
+            console.log('Available categories in database:', categories);
+            
+            // Check if we have posts without categories
+            const postsWithoutCategory = await postsCollection.countDocuments({ 
+                $or: [
+                    { category: { $exists: false } },
+                    { category: null },
+                    { category: "" }
+                ]
+            });
+            console.log('Posts without category:', postsWithoutCategory);
+            
+            return categories.filter(cat => cat && cat.trim() !== '');
+        } catch (error) {
+            console.error('Error getting categories:', error);
+            throw error;
+        }
+    },
+
+    // Ensure all posts have a category field
+    ensureCategories: async function () {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            // Update posts that don't have a category to have 'General'
+            const result = await postsCollection.updateMany(
+                { 
+                    $or: [
+                        { category: { $exists: false } },
+                        { category: null },
+                        { category: "" }
+                    ]
+                },
+                { $set: { category: 'General' } }
+            );
+            console.log(`Updated ${result.modifiedCount} posts to have category 'General'`);
+            return result.modifiedCount;
+        } catch (error) {
+            console.error('Error ensuring categories:', error);
+            throw error;
+        }
+    },
+
+    // Ensure all posts have necessary fields for sorting
+    ensureSortingFields: async function () {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            // Update posts that don't have upvotes field
+            const upvotesResult = await postsCollection.updateMany(
+                { upvotes: { $exists: false } },
+                { $set: { upvotes: [] } }
+            );
+            
+            // Update posts that don't have downvotes field
+            const downvotesResult = await postsCollection.updateMany(
+                { downvotes: { $exists: false } },
+                { $set: { downvotes: [] } }
+            );
+            
+            console.log(`Updated ${upvotesResult.modifiedCount} posts to have upvotes field`);
+            console.log(`Updated ${downvotesResult.modifiedCount} posts to have downvotes field`);
+            
+            return {
+                upvotesUpdated: upvotesResult.modifiedCount,
+                downvotesUpdated: downvotesResult.modifiedCount
+            };
+        } catch (error) {
+            console.error('Error ensuring sorting fields:', error);
+            throw error;
+        }
+    },
+
+    // Debug function to check posts and their categories
+    debugPosts: async function () {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            const posts = await postsCollection.find({}, { 
+                projection: { 
+                    postTitle: 1, 
+                    category: 1, 
+                    creationDate: 1,
+                    deleted: 1 
+                } 
+            }).limit(5).toArray();
+            console.log('Sample posts from database:', posts);
+            return posts;
+        } catch (error) {
+            console.error('Error debugging posts:', error);
+            throw error;
+        }
     },
 
     // Upvote, downvote, or remove vote for a post

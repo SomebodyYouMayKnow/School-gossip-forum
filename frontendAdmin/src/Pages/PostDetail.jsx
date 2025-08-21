@@ -181,6 +181,23 @@ const PostDetail = () => {
                     )}
                 </h2>
                 <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
+                {post.category && (
+                    <div style={{
+                        marginBottom: '12px',
+                        fontSize: '0.9em',
+                        color: '#666'
+                    }}>
+                        <span style={{
+                            background: '#e9ecef',
+                            color: '#495057',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontWeight: '500'
+                        }}>
+                            📂 Category: {post.category}
+                        </span>
+                    </div>
+                )}
                 <div className="post-content" dangerouslySetInnerHTML={{ __html: post.postContent }} />
                 <div style={{ display: 'flex', gap: '12px', marginTop: '18px', alignItems: 'center' }}>
                     <button
@@ -189,10 +206,39 @@ const PostDetail = () => {
                         disabled={post.deleted || post.commentsDisabled}
                     >▲ Upvote {voteState.upvotes}</button>
                     <button
-                        className={`upvote-btn${voteState.userVote === 'downvote' ? ' upvoted' : ''}`}
+                        className={`downvote-btn${voteState.userVote === 'downvote' ? ' upvoted' : ''}`}
                         onClick={() => handleVote(voteState.userVote === 'downvote' ? 'remove' : 'downvote')}
                         disabled={post.deleted || post.commentsDisabled}
                     >▼ Downvote {voteState.downvotes}</button>
+                    {!isCurrentUserAdmin && userId && post.userID === userId && !post.deleted && (
+                        <button
+                            style={{
+                                marginLeft: 'auto',
+                                background: '#d11a2a',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                            onClick={async () => {
+                                if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+                                    try {
+                                        await axios.delete(`http://localhost:5555/api/post/${postId}`, {
+                                            data: { userId }
+                                        });
+                                        alert('Post deleted successfully');
+                                        window.location.href = '/';
+                                    } catch (err) {
+                                        const errorMessage = err.response?.data?.message || 'Failed to delete post';
+                                        alert(errorMessage);
+                                    }
+                                }
+                            }}
+                        >
+                            🗑️ Delete My Post
+                        </button>
+                    )}
                 </div>
             </div>
             <div className="comments-section">
@@ -278,8 +324,38 @@ const PostDetail = () => {
                                             alert('Failed to like comment.');
                                         }
                                     }}
-                                    disabled={post.deleted || post.commentsDisabled}
                                 >👍 {comment.likes ? comment.likes.length : 0}</button>
+                                {userId && comment.userId === userId && (
+                                    <button
+                                        style={{
+                                            marginTop: 6,
+                                            marginRight: 8,
+                                            padding: '2px 10px',
+                                            fontSize: '0.95em',
+                                            background: '#d11a2a',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={async () => {
+                                            if (!confirm('Are you sure you want to delete this comment?')) return;
+                                            try {
+                                                await axios.delete('http://localhost:5555/api/comment/user', {
+                                                    data: { postId, commentId: comment._id, userId }
+                                                });
+                                                // Remove the comment from local state
+                                                setComments(comments => comments.filter(c => c._id !== comment._id));
+                                                alert('Comment deleted successfully');
+                                            } catch (err) {
+                                                const errorMessage = err.response?.data?.message || 'Failed to delete comment';
+                                                alert(errorMessage);
+                                            }
+                                        }}
+                                    >
+                                        🗑️ Delete
+                                    </button>
+                                )}
                                 <button
                                     className="upvote-btn"
                                     style={{marginTop:6,marginRight:8,padding:'2px 10px',fontSize:'0.95em'}}
@@ -377,6 +453,41 @@ const PostDetail = () => {
                                                         )}
                                                     </div>
                                                     <div className="comment-text">{reply.text}</div>
+                                                    {userId && reply.userId === userId && (
+                                                        <button
+                                                            style={{
+                                                                marginTop: 6,
+                                                                marginRight: 8,
+                                                                padding: '2px 10px',
+                                                                fontSize: '0.95em',
+                                                                background: '#d11a2a',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                borderRadius: '4px',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                            onClick={async () => {
+                                                                if (!confirm('Are you sure you want to delete this reply?')) return;
+                                                                try {
+                                                                    await axios.delete('http://localhost:5555/api/comment/user', {
+                                                                        data: { postId, commentId: reply._id, userId }
+                                                                    });
+                                                                    // Remove the reply from local state
+                                                                    setComments(comments => comments.map(c =>
+                                                                        c._id === comment._id
+                                                                            ? { ...c, replies: c.replies.filter(r => r._id !== reply._id) }
+                                                                            : c
+                                                                    ));
+                                                                    alert('Reply deleted successfully');
+                                                                } catch (err) {
+                                                                    const errorMessage = err.response?.data?.message || 'Failed to delete reply';
+                                                                    alert(errorMessage);
+                                                                }
+                                                            }}
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    )}
                                                 </div>
                                             );
                                         })}
