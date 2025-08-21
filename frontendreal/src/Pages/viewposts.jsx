@@ -86,11 +86,9 @@ const ViewPosts = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
-    // Search and category state
-    const [searchQuery, setSearchQuery] = useState('');
+    // Category state
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [categories, setCategories] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
 
     // Delete modal state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -149,50 +147,7 @@ const ViewPosts = () => {
         // eslint-disable-next-line
     }, [page, sortBy, order, dateFrom, dateTo, selectedCategory]);
 
-    // Search posts
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) {
-            setIsSearching(false);
-            setPage(1);
-            return;
-        }
 
-        setIsSearching(true);
-        setLoading(true);
-        try {
-            let params = `q=${encodeURIComponent(searchQuery.trim())}&limit=${POSTS_PER_PAGE}&skip=0`;
-            params += `&sortBy=${sortBy}&order=${order}`;
-            if (selectedCategory && selectedCategory !== 'All') {
-                params += `&category=${encodeURIComponent(selectedCategory)}`;
-            }
-            
-            console.log('Searching with params:', params);
-            
-            const response = await axios.get(`http://localhost:5555/api/search-posts?${params}`);
-            const newPosts = response.data.posts || [];
-            const postsWithComments = newPosts.map(post => ({ ...post, commentCount: post.commentsCount ?? 0 }));
-            setPosts(postsWithComments);
-            setTotal(response.data.total);
-            setHasMore(newPosts.length === POSTS_PER_PAGE);
-            setPage(1);
-        } catch (err) {
-            console.error('Search error:', err);
-            setError('Failed to search posts');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Clear search and return to normal posts
-    const clearSearch = () => {
-        setSearchQuery('');
-        setIsSearching(false);
-        setPage(1);
-        setPosts([]);
-        setHasMore(true);
-        // Trigger a fresh fetch of posts with current category
-        setPage(1);
-    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -304,7 +259,7 @@ const ViewPosts = () => {
             />
             <h2>Posts</h2>
             
-            {/* Search and Category Filter */}
+            {/* Category Filter */}
             <div style={{
                 display: 'flex',
                 gap: '12px',
@@ -316,53 +271,6 @@ const ViewPosts = () => {
                 borderRadius: '8px',
                 border: '1px solid #e9ecef'
             }}>
-                <div style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '300px' }}>
-                    <input
-                        type="text"
-                        placeholder="Search posts by title, content, or category..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                        style={{
-                            flex: 1,
-                            padding: '8px 12px',
-                            border: '1px solid #ced4da',
-                            borderRadius: '4px',
-                            fontSize: '14px'
-                        }}
-                    />
-                    <button
-                        onClick={handleSearch}
-                        style={{
-                            padding: '8px 16px',
-                            background: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
-                    >
-                        🔍 Search
-                    </button>
-                    {isSearching && (
-                        <button
-                            onClick={clearSearch}
-                            style={{
-                                padding: '8px 16px',
-                                background: '#6c757d',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '14px'
-                            }}
-                        >
-                            ✕ Clear
-                        </button>
-                    )}
-                </div>
-                
                 <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
@@ -380,20 +288,7 @@ const ViewPosts = () => {
                 </select>
             </div>
             
-            {/* Search Results Info */}
-            {isSearching && (
-                <div style={{
-                    background: '#e7f3ff',
-                    border: '1px solid #b3d9ff',
-                    borderRadius: '4px',
-                    padding: '12px',
-                    marginBottom: '18px',
-                    color: '#0066cc'
-                }}>
-                    🔍 Search results for "{searchQuery}" {selectedCategory !== 'All' && `in ${selectedCategory}`} 
-                    ({total} posts found)
-                </div>
-            )}
+
             
             {/* Sorting and filtering controls */}
             <div style={{display:'flex',gap:'16px',marginBottom:'18px',flexWrap:'wrap',alignItems:'center'}}>

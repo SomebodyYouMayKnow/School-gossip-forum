@@ -57,72 +57,11 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /api/search-posts
-router.get('/search', async (req, res) => {
-    const { q, limit, skip, sortBy, order, category } = req.query;
-    
-    console.log('Search request:', { q, limit, skip, sortBy, order, category });
-    
-    if (!q || q.trim() === '') {
-        return res.status(400).json({ error: 'Search query is required' });
-    }
-    
-    // Convert order string to number
-    let orderNum = -1; // default to descending
-    if (order === 'asc') orderNum = 1;
-    else if (order === 'desc') orderNum = -1;
-    
-    try {
-        const result = await db.searchPosts(q.trim(), {
-            limit: parseInt(limit) || 20,
-            skip: parseInt(skip) || 0,
-            sortBy: sortBy || 'recent',
-            order: orderNum,
-            category: category || null
-        });
-        console.log('Search results:', result.posts.length, 'Total:', result.total);
-        res.json(result);
-    } catch (error) {
-        console.error('Error in search:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // GET /api/categories
 router.get('/categories', async (req, res) => {
     try {
         const categories = await db.getCategories();
         res.json({ categories });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// GET /api/debug-posts (for debugging)
-router.get('/debug-posts', async (req, res) => {
-    try {
-        const posts = await db.debugPosts();
-        res.json({ posts });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// POST /api/ensure-categories (to fix posts without categories)
-router.post('/ensure-categories', async (req, res) => {
-    try {
-        const updatedCount = await db.ensureCategories();
-        res.json({ success: true, updatedCount });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// POST /api/ensure-sorting-fields (to fix posts without upvotes/downvotes)
-router.post('/ensure-sorting-fields', async (req, res) => {
-    try {
-        const result = await db.ensureSortingFields();
-        res.json({ success: true, result });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
