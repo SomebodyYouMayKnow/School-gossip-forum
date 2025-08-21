@@ -176,39 +176,84 @@ const ViewPosts = () => {
                         }
                     } catch {}
                     return (
-                        <div className="post-card" key={post._id} onClick={e => {
-                            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'svg' && e.target.tagName !== 'path') handlePostClick(post._id);
-                        }} style={{ cursor: 'pointer', position: 'relative' }}>
-                            <h3 className="post-title" style={isAdminPost && !isCurrentUserAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
+                        <div
+                            className="post-card"
+                            key={post._id}
+                            onClick={e => {
+                                if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'svg' && e.target.tagName !== 'path') handlePostClick(post._id);
+                            }}
+                            style={{
+                                cursor: 'pointer',
+                                position: 'relative',
+                                ...(post.deleted ? { outline: '3px solid black' } : {})
+                            }}
+                        >
+                            <h3
+                                className="post-title"
+                                style={
+                                    post.deleted
+                                        ? { color: 'black', fontWeight: 'bold', background: '#f8f8f8', borderRadius: '4px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '8px' }
+                                        : post.commentsDisabled
+                                            ? { color: '#b88600', fontWeight: 'bold', background: '#fffbe6', borderRadius: '4px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '8px' }
+                                            : (isAdminPost && !isCurrentUserAdmin ? { color: 'red', fontWeight: 'bold' } : {})
+                                }
+                            >
+                                {post.deleted && <span style={{color:'#b00',fontWeight:'bold',fontSize:'1.1em',marginRight:4}} title="Deleted post">⚠️</span>}
+                                {post.commentsDisabled && !post.deleted && <span style={{color:'#b88600',fontWeight:'bold',fontSize:'1.1em',marginRight:4}} title="Paused post">⏸️</span>}
                                 {post.postTitle}
+                                {post.deleted && <span style={{marginLeft:8, color:'#b00', fontWeight:'bold', fontSize:'0.97em'}}>Deleted by admin</span>}
+                                {post.commentsDisabled && !post.deleted && <span style={{marginLeft:8, color:'#b88600', fontWeight:'bold', fontSize:'0.97em'}}>Interaction paused</span>}
                                 {isAdminPost && !isCurrentUserAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
                                 {/* Admin delete icon */}
                                 {isCurrentUserAdmin && !post.deleted && (
-                                    <span
-                                        title="Delete post for everyone"
-                                        style={{ float: 'right', cursor: 'pointer', color: '#d11a2a', marginLeft: 12 }}
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            const reason = window.prompt('Enter reason for deleting this post (will be shown as content):');
-                                            if (!reason) return;
-                                            try {
-                                                const userCookie = Cookies.get('user');
-                                                const userData = userCookie ? JSON.parse(userCookie) : {};
-                                                const adminId = userData.userId || userData._id;
-                                                await axios.patch(`http://localhost:5555/api/post/${post._id}/delete`, { reason, adminId });
-                                                setPosts(prevPosts => prevPosts.map(p =>
-                                                    p._id === post._id
-                                                        ? { ...p, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true }
-                                                        : p
-                                                ));
-                                            } catch (err) {
-                                                alert('Failed to delete post.');
-                                            }
-                                        }}
-                                    >
-                                        {/* Trash SVG icon */}
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
-                                    </span>
+                                    <>
+                                        <span
+                                            title="Delete post for everyone"
+                                            style={{ float: 'right', cursor: 'pointer', color: '#d11a2a', marginLeft: 12 }}
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                const reason = window.prompt('Enter reason for deleting this post (will be shown as content):');
+                                                if (!reason) return;
+                                                try {
+                                                    const userCookie = Cookies.get('user');
+                                                    const userData = userCookie ? JSON.parse(userCookie) : {};
+                                                    const adminId = userData.userId || userData._id;
+                                                    await axios.patch(`http://localhost:5555/api/post/${post._id}/delete`, { reason, adminId });
+                                                    setPosts(prevPosts => prevPosts.map(p =>
+                                                        p._id === post._id
+                                                            ? { ...p, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true }
+                                                            : p
+                                                    ));
+                                                } catch (err) {
+                                                    alert('Failed to delete post.');
+                                                }
+                                            }}
+                                        >
+                                            {/* Trash SVG icon */}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                        </span>
+                                        <button
+                                            style={{ float: 'right', marginLeft: 8, background: post.commentsDisabled ? '#ffc107' : '#4caf50', color: '#222', border: 'none', borderRadius: 4, padding: '2px 10px', cursor: 'pointer' }}
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                try {
+                                                    const userCookie = Cookies.get('user');
+                                                    const userData = userCookie ? JSON.parse(userCookie) : {};
+                                                    const adminId = userData.userId || userData._id;
+                                                    await axios.patch(`http://localhost:5555/api/post/${post._id}/pause`, { adminId, pause: !post.commentsDisabled });
+                                                    setPosts(prevPosts => prevPosts.map(p =>
+                                                        p._id === post._id
+                                                            ? { ...p, commentsDisabled: !post.commentsDisabled }
+                                                            : p
+                                                    ));
+                                                } catch (err) {
+                                                    alert('Failed to toggle post interaction.');
+                                                }
+                                            }}
+                                        >
+                                            {post.commentsDisabled ? 'Resume Interaction' : 'Pause Interaction'}
+                                        </button>
+                                    </>
                                 )}
                             </h3>
                             <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>

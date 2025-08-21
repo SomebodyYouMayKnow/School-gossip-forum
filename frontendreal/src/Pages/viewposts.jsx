@@ -152,10 +152,45 @@ const ViewPosts = () => {
                 {posts.map(post => {
                     const userVote = getUserVote(post);
                     return (
-                        <div className="post-card" key={post._id} onClick={e => {
-                            if (e.target.tagName !== 'BUTTON') handlePostClick(post._id);
-                        }} style={{ cursor: 'pointer' }}>
-                            <h3 className="post-title">{post.postTitle}</h3>
+                        <div
+                            className="post-card"
+                            key={post._id}
+                            onClick={e => {
+                                if (e.target.tagName !== 'BUTTON') handlePostClick(post._id);
+                            }}
+                            style={{
+                                cursor: 'pointer',
+                                ...(post.deleted ? {
+                                    outline: '2px solid black',
+                                    background: '#f8f8f8',
+                                } : post.commentsDisabled ? {
+                                    outline: '2px solid #b88600',
+                                    background: '#fffbe6',
+                                } : {})
+                            }}
+                        >
+                            <h3
+                                className="post-title"
+                                style={post.deleted ? {
+                                    color: 'black',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                } : post.commentsDisabled ? {
+                                    color: '#b88600',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                } : {}}
+                            >
+                                {post.deleted && <span style={{color:'#b00',fontWeight:'bold',fontSize:'1.1em',marginRight:4}} title="Deleted post">⚠️</span>}
+                                {post.commentsDisabled && !post.deleted && <span style={{color:'#b88600',fontWeight:'bold',fontSize:'1.1em',marginRight:4}} title="Paused post">⏸️</span>}
+                                {post.postTitle}
+                                {post.deleted && <span style={{marginLeft:8, color:'#b00', fontWeight:'bold', fontSize:'0.97em'}}>Deleted by admin</span>}
+                                {post.commentsDisabled && !post.deleted && <span style={{marginLeft:8, color:'#b88600', fontWeight:'bold', fontSize:'0.97em'}}>Interaction paused</span>}
+                            </h3>
                             <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
                             <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
                             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', cursor: 'default' }}>
@@ -165,10 +200,12 @@ const ViewPosts = () => {
                                 <button
                                     className={`upvote-btn${userVote === 'upvote' ? ' upvoted' : ''}`}
                                     onClick={e => handleVote(e, post._id, userVote === 'upvote' ? 'remove' : 'upvote')}
+                                    disabled={post.deleted || post.commentsDisabled}
                                 >▲ Upvote {post.upvotes ? post.upvotes.length : 0}</button>
                                 <button
                                     className={`downvote-btn${userVote === 'downvote' ? ' upvoted' : ''}`}
                                     onClick={e => handleVote(e, post._id, userVote === 'downvote' ? 'remove' : 'downvote')}
+                                    disabled={post.deleted || post.commentsDisabled}
                                 >▼ Downvote {post.downvotes ? post.downvotes.length : 0}</button>
                             </div>
                             <div className="post-toggle-tip">Click to view full post</div>

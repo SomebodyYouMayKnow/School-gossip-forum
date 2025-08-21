@@ -370,4 +370,20 @@ module.exports = {
                 : null
         };
     },
+    // Set commentsDisabled for a post (admin only)
+    setPostCommentsDisabled: async function (postId, adminId, pause) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        const adminUser = await db.collection('Users').findOne({ _id: new ObjectId(adminId) });
+        if (!adminUser || !(adminUser.admin === true || adminUser.admin === 'true')) {
+            return { success: false, message: 'Not authorized' };
+        }
+        const update = { $set: { commentsDisabled: pause } };
+        const result = await postsCollection.updateOne({ _id: new ObjectId(postId) }, update);
+        if (result.modifiedCount === 1) {
+            return { success: true };
+        } else {
+            return { success: false, message: 'Post not found' };
+        }
+    }
 };

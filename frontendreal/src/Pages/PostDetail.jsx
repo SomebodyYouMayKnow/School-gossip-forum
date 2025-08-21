@@ -139,20 +139,37 @@ const PostDetail = () => {
             </div>
             <div className="comments-section">
                 <h3>Comments ({comments.length})</h3>
-                <form className="comment-form" onSubmit={handleCommentSubmit} style={{marginBottom: '18px'}}>
-                    <textarea
-                        className="comment-input"
-                        value={commentText}
-                        onChange={e => setCommentText(e.target.value)}
-                        placeholder="Write a comment..."
-                        rows={3}
-                        disabled={commentLoading}
-                        style={{width:'100%',resize:'vertical',marginBottom:'8px'}}
-                    />
-                    <button className="upvote-btn" type="submit" disabled={commentLoading || !commentText.trim()}>
-                        {commentLoading ? 'Posting...' : 'Post Comment'}
-                    </button>
-                </form>
+                {(post.deleted || post.commentsDisabled) ? (
+                    <div style={{
+                        background: '#ffeaea',
+                        color: '#b00',
+                        border: '1px solid #b00',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '18px',
+                        fontWeight: 'bold',
+                        textAlign: 'center'
+                    }}>
+                        {post.deleted
+                            ? 'Comments are disabled because this post has been deleted by an admin.'
+                            : 'Comments are disabled for this post.'}
+                    </div>
+                ) : (
+                    <form className="comment-form" onSubmit={handleCommentSubmit} style={{marginBottom: '18px'}}>
+                        <textarea
+                            className="comment-input"
+                            value={commentText}
+                            onChange={e => setCommentText(e.target.value)}
+                            placeholder="Write a comment..."
+                            rows={3}
+                            disabled={commentLoading}
+                            style={{width:'100%',resize:'vertical',marginBottom:'8px'}}
+                        />
+                        <button className="upvote-btn" type="submit" disabled={commentLoading || !commentText.trim()}>
+                            {commentLoading ? 'Posting...' : 'Post Comment'}
+                        </button>
+                    </form>
+                )}
                 <div className="comments-list">
                     {comments.length === 0 && <div style={{color:'#888'}}>No comments yet.</div>}
                     {comments.map(comment => {

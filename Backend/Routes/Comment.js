@@ -11,11 +11,19 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Missing postId, userId, or text' });
     }
     try {
-        // Enforce timeBetweenComments
+        // Check if post is deleted or paused
         const dbClient = db.getClient();
+        const postsCollection = dbClient.db('school-gossip-forum').collection('Posts');
+        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+        if (!post) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+        if (post.deleted || post.commentsDisabled) {
+            return res.status(403).json({ success: false, message: 'Comments are disabled for this post.' });
+        }
+        // Enforce timeBetweenComments
         const usersCollection = dbClient.db('school-gossip-forum').collection('Users');
-    const { ObjectId } = require('mongodb');
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
         if (user && user.lastComment && !(user.premium || user.admin)) {
             const now = Date.now();
             const last = new Date(user.lastComment).getTime();
@@ -27,7 +35,7 @@ router.post('/', async (req, res) => {
         // Add comment
         const comment = await db.addComment(postId, userId, fullName, text, parentCommentId);
         // Update lastComment
-    await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
+        await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
         res.status(200).json({ success: true, comment });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

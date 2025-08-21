@@ -132,10 +132,53 @@ const PostDetail = () => {
     } catch {}
     return (
         <div className="posts-container">
-            <div className="post-card">
+            <div className="post-card" style={post.deleted ? { outline: '3px solid black' } : {}}>
                 <h2 className="post-title" style={isAdminPost && !isCurrentUserAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
                     {post.postTitle}
                     {isAdminPost && !isCurrentUserAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                    {/* Admin delete and pause/resume icons */}
+                    {isCurrentUserAdmin && !post.deleted && (
+                        <>
+                            <span
+                                title="Delete post for everyone"
+                                style={{ float: 'right', cursor: 'pointer', color: '#d11a2a', marginLeft: 12 }}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const reason = window.prompt('Enter reason for deleting this post (will be shown as content):');
+                                    if (!reason) return;
+                                    try {
+                                        const userCookie = Cookies.get('user');
+                                        const userData = userCookie ? JSON.parse(userCookie) : {};
+                                        const adminId = userData.userId || userData._id;
+                                        await axios.patch(`http://localhost:5555/api/post/${post._id}/delete`, { reason, adminId });
+                                        setPost(prev => prev ? { ...prev, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true } : prev);
+                                    } catch (err) {
+                                        alert('Failed to delete post.');
+                                    }
+                                }}
+                            >
+                                {/* Trash SVG icon */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                            </span>
+                            <button
+                                style={{ float: 'right', marginLeft: 8, background: post.commentsDisabled ? '#ffc107' : '#4caf50', color: '#222', border: 'none', borderRadius: 4, padding: '2px 10px', cursor: 'pointer' }}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        const userCookie = Cookies.get('user');
+                                        const userData = userCookie ? JSON.parse(userCookie) : {};
+                                        const adminId = userData.userId || userData._id;
+                                        await axios.patch(`http://localhost:5555/api/post/${post._id}/pause`, { adminId, pause: !post.commentsDisabled });
+                                        setPost(prev => prev ? { ...prev, commentsDisabled: !prev.commentsDisabled } : prev);
+                                    } catch (err) {
+                                        alert('Failed to toggle post interaction.');
+                                    }
+                                }}
+                            >
+                                {post.commentsDisabled ? 'Resume Interaction' : 'Pause Interaction'}
+                            </button>
+                        </>
+                    )}
                 </h2>
                 <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
                 <div className="post-content" dangerouslySetInnerHTML={{ __html: post.postContent }} />
