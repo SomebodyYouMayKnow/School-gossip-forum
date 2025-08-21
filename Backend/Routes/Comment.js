@@ -1,5 +1,27 @@
 const express = require('express');
 const router = express.Router();
+
+
+// ...existing code...
+
+// DELETE /api/comment (admin only)
+router.delete('/', async (req, res) => {
+    // Accept postId, commentId, adminId in body (or query for DELETE)
+    const { postId, commentId, adminId } = req.body;
+    if (!postId || !commentId || !adminId) {
+        return res.status(400).json({ success: false, message: 'Missing postId, commentId, or adminId' });
+    }
+    try {
+        const result = await db.deleteComment(postId, commentId, adminId);
+        if (result.success) {
+            return res.status(200).json({ success: true, type: result.type });
+        } else {
+            return res.status(403).json({ success: false, message: result.message });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 const db = require('../db');
 const { ObjectId } = require('mongodb');
 

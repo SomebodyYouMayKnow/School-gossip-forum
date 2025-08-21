@@ -1,3 +1,32 @@
+// Modal for admin delete
+function DeletePostModal({ open, onClose, onDelete, reason, setReason, hide, setHide }) {
+    if (!open) return null;
+    return (
+        <div
+            style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.3)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}
+            onClick={onClose}
+        >
+            <div
+                style={{background:'#fff',padding:24,borderRadius:8,minWidth:320,boxShadow:'0 2px 16px #0003'}}
+                onClick={e => e.stopPropagation()}
+            >
+                <h3>Delete Post</h3>
+                <div style={{marginBottom:12}}>
+                    <label>Reason for deleting (shown as content):<br/>
+                        <textarea value={reason} onChange={e=>setReason(e.target.value)} rows={3} style={{width:'100%',marginTop:4}} />
+                    </label>
+                </div>
+                <div style={{marginBottom:16}}>
+                    <label><input type="checkbox" checked={hide} onChange={e=>setHide(e.target.checked)} /> Hide this post from feed (cannot be undone)</label>
+                </div>
+                <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+                    <button onClick={onClose}>Cancel</button>
+                    <button style={{background:'#d11a2a',color:'#fff'}} onClick={()=>onDelete(reason,hide)} disabled={!reason.trim()}>Delete</button>
+                </div>
+            </div>
+        </div>
+    );
+}
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -9,6 +38,11 @@ function useQuery() {
 }
 
 const PostDetail = () => {
+    // Modal state hooks must be at the top
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleteHide, setDeleteHide] = useState(false);
+
     const query = useQuery();
     const postId = query.get('postid');
     const [post, setPost] = useState(null);
@@ -120,8 +154,36 @@ const PostDetail = () => {
     if (error) return <div className="posts-container"><p style={{ color: 'red' }}>{error}</p></div>;
     if (!post) return <div className="posts-container"><p>Post not found.</p></div>;
 
+    // Admin check (assume post.admin or userId === post.adminId)
+    const isAdmin = post && (post.admin || userId === post.adminId || (userId && post.admins && post.admins.includes(userId)));
+
+
+    // Delete post handler
+    const handleDeletePost = async (reason, hide) => {
+        try {
+            await axios.patch(`http://localhost:5555/api/post/${postId}/delete`, { reason, hide }, {
+                headers: { Authorization: userId }
+            });
+            setDeleteModalOpen(false);
+            window.location.reload();
+        } catch (err) {
+            alert(err?.response?.data?.message || 'Failed to delete post.');
+        }
+    };
+
     return (
         <div className="posts-container">
+            {isAdmin && post && deleteModalOpen && (
+                <DeletePostModal
+                    open={deleteModalOpen}
+                    onClose={()=>setDeleteModalOpen(false)}
+                    onDelete={handleDeletePost}
+                    reason={deleteReason}
+                    setReason={setDeleteReason}
+                    hide={deleteHide}
+                    setHide={setDeleteHide}
+                />
+            )}
             <div className="post-card">
                 <h2 className="post-title">{post.postTitle}</h2>
                 <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
@@ -135,6 +197,12 @@ const PostDetail = () => {
                         className={`upvote-btn${voteState.userVote === 'downvote' ? ' upvoted' : ''}`}
                         onClick={() => handleVote(voteState.userVote === 'downvote' ? 'remove' : 'downvote')}
                     >▼ Downvote {voteState.downvotes}</button>
+                    {isAdmin && (
+                        <button
+                            style={{marginLeft:'auto',background:'#d11a2a',color:'#fff'}}
+                            onClick={()=>setDeleteModalOpen(true)}
+                        >Delete Post</button>
+                    )}
                 </div>
             </div>
             <div className="comments-section">
@@ -173,6 +241,29 @@ const PostDetail = () => {
                 <div className="comments-list">
                     {comments.length === 0 && <div style={{color:'#888'}}>No comments yet.</div>}
                     {comments.map(comment => {
+            // If post is deleted and hidden, show static deleted message only
+            if (post.deleted && post.hidden) {
+                return (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: '40vh',
+                        color: '#888',
+                        fontSize: '1.3rem',
+                        border: '2px solid #222',
+                        borderRadius: 12,
+                        margin: '2rem auto',
+                        maxWidth: 600,
+                        background: '#fafafa',
+                        padding: '3rem 2rem'
+                    }}>
+                        <span role="img" aria-label="deleted" style={{fontSize:'2.5rem',marginBottom:'1rem'}}>🗑️</span>
+                        <div>This post was deleted.</div>
+                    </div>
+                );
+            }
                         const liked = comment.likes && userId && comment.likes.includes(userId);
                         const replies = comment.replies || [];
                         const state = replyState[comment._id] || { show: false, text: '', loading: false };

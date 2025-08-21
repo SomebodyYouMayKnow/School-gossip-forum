@@ -225,12 +225,36 @@ const PostDetail = () => {
                         const isAdmin = comment.admin || comment.isAdmin;
                         return (
                             <div className="comment" key={comment._id}>
-                                <div className="comment-meta">
+                                <div className="comment-meta" style={{ display: 'flex', alignItems: 'center' }}>
                                     <b style={isAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
                                         {comment.fullName || comment.username || 'Anonymous'}
                                         {isAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
                                     </b>
                                     <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}</span>
+                                    {isCurrentUserAdmin && (
+                                        <span
+                                            title="Delete comment"
+                                            style={{marginLeft:12, color:'#d11a2a', cursor:'pointer'}}
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (!window.confirm('Are you sure you want to delete this comment?')) return;
+                                                try {
+                                                    const userCookie = Cookies.get('user');
+                                                    const userData = userCookie ? JSON.parse(userCookie) : {};
+                                                    const adminId = userData.userId || userData._id;
+                                                    await axios.delete('http://localhost:5555/api/comment', {
+                                                        data: { postId, commentId: comment._id, adminId }
+                                                    });
+                                                    setComments(comments => comments.filter(c => c._id !== comment._id));
+                                                } catch (err) {
+                                                    alert('Failed to delete comment.');
+                                                }
+                                            }}
+                                        >
+                                            {/* Trash SVG icon */}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="comment-text">{comment.text}</div>
                                 <button
@@ -317,12 +341,40 @@ const PostDetail = () => {
                                             const isAdminReply = reply.admin || reply.isAdmin;
                                             return (
                                                 <div className="comment" key={reply._id} style={{background:'#f5f7fa'}}>
-                                                    <div className="comment-meta">
+                                                    <div className="comment-meta" style={{ display: 'flex', alignItems: 'center' }}>
                                                         <b style={isAdminReply ? { color: 'red', fontWeight: 'bold' } : {}}>
                                                             {reply.fullName || reply.username || 'Anonymous'}
                                                             {isAdminReply && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
                                                         </b>
                                                         <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{reply.createdAt ? new Date(reply.createdAt).toLocaleString() : ''}</span>
+                                                        {isCurrentUserAdmin && (
+                                                            <span
+                                                                title="Delete reply"
+                                                                style={{marginLeft:12, color:'#d11a2a', cursor:'pointer'}}
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (!window.confirm('Are you sure you want to delete this reply?')) return;
+                                                                    try {
+                                                                        const userCookie = Cookies.get('user');
+                                                                        const userData = userCookie ? JSON.parse(userCookie) : {};
+                                                                        const adminId = userData.userId || userData._id;
+                                                                        await axios.delete('http://localhost:5555/api/comment', {
+                                                                            data: { postId, commentId: reply._id, adminId }
+                                                                        });
+                                                                        setComments(comments => comments.map(c =>
+                                                                            c._id === comment._id
+                                                                                ? { ...c, replies: c.replies.filter(r => r._id !== reply._id) }
+                                                                                : c
+                                                                        ));
+                                                                    } catch (err) {
+                                                                        alert('Failed to delete reply.');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {/* Trash SVG icon */}
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="comment-text">{reply.text}</div>
                                                 </div>

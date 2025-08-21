@@ -46,7 +46,7 @@ router.get('/:id', async (req, res) => {
 
 // PATCH /api/post/:id/delete
 router.patch('/:id/delete', async (req, res) => {
-    const { reason, adminId } = req.body;
+    const { reason, adminId, hide } = req.body;
     if (!ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ success: false, message: 'Invalid post ID' });
     }
@@ -54,8 +54,8 @@ router.patch('/:id/delete', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Reason and adminId required' });
     }
     try {
-        // Optionally, check admin privileges here
-        const result = await db.markPostAsDeleted(req.params.id, reason, adminId);
+    // Optionally, check admin privileges here
+    const result = await db.markPostAsDeleted(req.params.id, reason, adminId, !!hide);
         if (result.success) {
             res.status(200).json({ success: true });
         } else {

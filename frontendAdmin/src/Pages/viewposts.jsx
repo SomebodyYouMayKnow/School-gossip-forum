@@ -1,4 +1,33 @@
 import React, { useState, useEffect } from 'react';
+// Simple modal for delete post
+function DeletePostModal({ open, onClose, onDelete, reason, setReason, hide, setHide }) {
+    if (!open) return null;
+    return (
+        <div
+            style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.3)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}
+            onClick={onClose}
+        >
+            <div
+                style={{background:'#fff',padding:24,borderRadius:8,minWidth:320,boxShadow:'0 2px 16px #0003'}}
+                onClick={e => e.stopPropagation()}
+            >
+                <h3>Delete Post</h3>
+                <div style={{marginBottom:12}}>
+                    <label>Reason for deleting (shown as content):<br/>
+                        <textarea value={reason} onChange={e=>setReason(e.target.value)} rows={3} style={{width:'100%',marginTop:4}} />
+                    </label>
+                </div>
+                <div style={{marginBottom:16}}>
+                    <label><input type="checkbox" checked={hide} onChange={e=>setHide(e.target.checked)} /> Hide this post from feed (cannot be undone)</label>
+                </div>
+                <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+                    <button onClick={onClose}>Cancel</button>
+                    <button style={{background:'#d11a2a',color:'#fff'}} onClick={()=>onDelete(reason,hide)} disabled={!reason.trim()}>Delete</button>
+                </div>
+            </div>
+        </div>
+    );
+}
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -16,6 +45,9 @@ const ViewPosts = () => {
     const [hasMore, setHasMore] = useState(true);
     const POSTS_PER_PAGE = 10;
     const [total, setTotal] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ open: false, postId: null });
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleteHide, setDeleteHide] = useState(false);
 
     // Sorting and filtering state
     const [sortBy, setSortBy] = useState('recent');
@@ -210,28 +242,42 @@ const ViewPosts = () => {
                                         <span
                                             title="Delete post for everyone"
                                             style={{ float: 'right', cursor: 'pointer', color: '#d11a2a', marginLeft: 12 }}
-                                            onClick={async (e) => {
+                                            onClick={e => {
                                                 e.stopPropagation();
-                                                const reason = window.prompt('Enter reason for deleting this post (will be shown as content):');
-                                                if (!reason) return;
-                                                try {
-                                                    const userCookie = Cookies.get('user');
-                                                    const userData = userCookie ? JSON.parse(userCookie) : {};
-                                                    const adminId = userData.userId || userData._id;
-                                                    await axios.patch(`http://localhost:5555/api/post/${post._id}/delete`, { reason, adminId });
-                                                    setPosts(prevPosts => prevPosts.map(p =>
-                                                        p._id === post._id
-                                                            ? { ...p, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true }
-                                                            : p
-                                                    ));
-                                                } catch (err) {
-                                                    alert('Failed to delete post.');
-                                                }
+                                                setDeleteModal({ open: true, postId: post._id });
+                                                setDeleteReason('');
+                                                setDeleteHide(false);
                                             }}
                                         >
                                             {/* Trash SVG icon */}
                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                                         </span>
+            {/* Delete Post Modal */}
+            <DeletePostModal
+                open={deleteModal.open}
+                reason={deleteReason}
+                setReason={setDeleteReason}
+                hide={deleteHide}
+                setHide={setDeleteHide}
+                onClose={() => setDeleteModal({ open: false, postId: null })}
+                onDelete={async (reason, hide) => {
+                    const postId = deleteModal.postId;
+                    setDeleteModal({ open: false, postId: null });
+                    try {
+                        const userCookie = Cookies.get('user');
+                        const userData = userCookie ? JSON.parse(userCookie) : {};
+                        const adminId = userData.userId || userData._id;
+                        await axios.patch(`http://localhost:5555/api/post/${postId}/delete`, { reason, adminId, hide });
+                        setPosts(prevPosts => prevPosts.map(p =>
+                            p._id === postId
+                                ? { ...p, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true, hidden: !!hide }
+                                : p
+                        ));
+                    } catch (err) {
+                        alert('Failed to delete post.');
+                    }
+                }}
+            />
                                         <button
                                             style={{ float: 'right', marginLeft: 8, background: post.commentsDisabled ? '#ffc107' : '#4caf50', color: '#222', border: 'none', borderRadius: 4, padding: '2px 10px', cursor: 'pointer' }}
                                             onClick={async (e) => {

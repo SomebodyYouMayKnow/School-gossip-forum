@@ -1,3 +1,4 @@
+    // Delete a comment or reply from a post (admin only)
 // (removed misplaced upvotePost function)
 const MongoClient = require("mongodb").MongoClient;
 const crypto = require("crypto");
@@ -21,6 +22,33 @@ async function connectToCluster() {
 connectToCluster();
 
 module.exports = {
+    // Delete a comment or reply from a post (admin only)
+    deleteComment: async function (postId, commentId, adminId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        // Check admin
+        const adminUser = await db.collection('Users').findOne({ _id: new ObjectId(adminId) });
+        if (!adminUser || !(adminUser.admin === true || adminUser.admin === 'true')) {
+            return { success: false, message: 'Not authorized' };
+        }
+        // Try to remove as top-level comment
+        const result = await postsCollection.updateOne(
+            { _id: new ObjectId(postId) },
+            { $pull: { comments: { _id: new ObjectId(commentId) } } }
+        );
+        if (result.modifiedCount === 1) {
+            return { success: true, type: 'comment' };
+        }
+        // Try to remove as a reply
+        const replyResult = await postsCollection.updateOne(
+            { _id: new ObjectId(postId), "comments.replies._id": new ObjectId(commentId) },
+            { $pull: { "comments.$.replies": { _id: new ObjectId(commentId) } } }
+        );
+        if (replyResult.modifiedCount === 1) {
+            return { success: true, type: 'reply' };
+        }
+        return { success: false, message: 'Comment not found' };
+    },
     getClient: function () {
         return mongoClient;
     },
@@ -131,12 +159,13 @@ module.exports = {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Posts');
         try {
-            console.log('getPostById called with id:', id);
             const result = await usersCollection.findOne({ _id: new ObjectId(id) });
-            console.log('getPostById result:', result);
+            if (result && result.deleted && result.hidden) {
+                // Return a static deleted marker
+                return { _id: id, deleted: true, hidden: true };
+            }
             return result;
         } catch (error) {
-            console.error('getPostById error:', error);
             return null;
         }
     },
@@ -218,7 +247,7 @@ module.exports = {
     },
 
     // Mark a post as deleted (admin only): change title/content, disable comments
-    markPostAsDeleted: async function (postId, reason, adminId) {
+    markPostAsDeleted: async function (postId, reason, adminId, hide = false) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
         // Optionally, check adminId is admin
@@ -231,7 +260,8 @@ module.exports = {
                 postTitle: 'Deleted',
                 postContent: reason,
                 deleted: true,
-                commentsDisabled: true
+                commentsDisabled: true,
+                hidden: !!hide
             }
         };
         const result = await postsCollection.updateOne({ _id: new ObjectId(postId) }, update);
@@ -315,9 +345,10 @@ module.exports = {
         else if (sortBy === 'comments') sort = { commentsCount: order };
         else sort = { createdAt: -1 };
 
-        // Use aggregation to compute counts for upvotes, downvotes, comments
+        // Exclude hidden posts from feed
+        const match = { ...filter, $or: [ { hidden: { $exists: false } }, { hidden: false } ] };
         const pipeline = [
-            { $match: filter },
+            { $match: match },
             {
                 $addFields: {
                     upvotesCount: { $size: { $ifNull: ["$upvotes", []] } },
