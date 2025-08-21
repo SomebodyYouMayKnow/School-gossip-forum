@@ -118,8 +118,22 @@ const ViewPosts = () => {
     };
 
 
+    // Debug: show current user info
+    let debugUser = { userId: null, admin: null };
+    try {
+        const userCookie = Cookies.get('user');
+        if (userCookie) {
+            const userData = JSON.parse(userCookie);
+            debugUser.userId = userData.userId || userData._id;
+            debugUser.admin = userData.admin;
+        }
+    } catch {}
+
     return (
         <div className="posts-container">
+            <div style={{background:'#ffeeba',color:'#856404',padding:'8px',marginBottom:'10px',borderRadius:'4px',fontSize:'0.95em'}}>
+                <b>Debug:</b> userId: {String(debugUser.userId)} | admin: {String(debugUser.admin)}
+            </div>
             <h2>Posts</h2>
             {/* Sorting and filtering controls */}
             <div style={{display:'flex',gap:'16px',marginBottom:'18px',flexWrap:'wrap',alignItems:'center'}}>
@@ -163,11 +177,39 @@ const ViewPosts = () => {
                     } catch {}
                     return (
                         <div className="post-card" key={post._id} onClick={e => {
-                            if (e.target.tagName !== 'BUTTON') handlePostClick(post._id);
-                        }} style={{ cursor: 'pointer' }}>
+                            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'svg' && e.target.tagName !== 'path') handlePostClick(post._id);
+                        }} style={{ cursor: 'pointer', position: 'relative' }}>
                             <h3 className="post-title" style={isAdminPost && !isCurrentUserAdmin ? { color: 'red', fontWeight: 'bold' } : {}}>
                                 {post.postTitle}
                                 {isAdminPost && !isCurrentUserAdmin && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                                {/* Admin delete icon */}
+                                {isCurrentUserAdmin && !post.deleted && (
+                                    <span
+                                        title="Delete post for everyone"
+                                        style={{ float: 'right', cursor: 'pointer', color: '#d11a2a', marginLeft: 12 }}
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            const reason = window.prompt('Enter reason for deleting this post (will be shown as content):');
+                                            if (!reason) return;
+                                            try {
+                                                const userCookie = Cookies.get('user');
+                                                const userData = userCookie ? JSON.parse(userCookie) : {};
+                                                const adminId = userData.userId || userData._id;
+                                                await axios.patch(`http://localhost:5555/api/post/${post._id}/delete`, { reason, adminId });
+                                                setPosts(prevPosts => prevPosts.map(p =>
+                                                    p._id === post._id
+                                                        ? { ...p, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true }
+                                                        : p
+                                                ));
+                                            } catch (err) {
+                                                alert('Failed to delete post.');
+                                            }
+                                        }}
+                                    >
+                                        {/* Trash SVG icon */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                    </span>
+                                )}
                             </h3>
                             <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
                             <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
@@ -178,10 +220,12 @@ const ViewPosts = () => {
                                 <button
                                     className={`upvote-btn${userVote === 'upvote' ? ' upvoted' : ''}`}
                                     onClick={e => handleVote(e, post._id, userVote === 'upvote' ? 'remove' : 'upvote')}
+                                    disabled={post.deleted || post.commentsDisabled}
                                 >▲ Upvote {post.upvotes ? post.upvotes.length : 0}</button>
                                 <button
                                     className={`downvote-btn${userVote === 'downvote' ? ' upvoted' : ''}`}
                                     onClick={e => handleVote(e, post._id, userVote === 'downvote' ? 'remove' : 'downvote')}
+                                    disabled={post.deleted || post.commentsDisabled}
                                 >▼ Downvote {post.downvotes ? post.downvotes.length : 0}</button>
                             </div>
                             <div className="post-toggle-tip">Click to view full post</div>

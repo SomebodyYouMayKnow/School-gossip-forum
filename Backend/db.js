@@ -216,6 +216,31 @@ module.exports = {
             return { success: false, message: 'Error deleting post' };
         }
     },
+
+    // Mark a post as deleted (admin only): change title/content, disable comments
+    markPostAsDeleted: async function (postId, reason, adminId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        // Optionally, check adminId is admin
+        const adminUser = await db.collection('Users').findOne({ _id: new ObjectId(adminId) });
+        if (!adminUser || !(adminUser.admin === true || adminUser.admin === 'true')) {
+            return { success: false, message: 'Not authorized' };
+        }
+        const update = {
+            $set: {
+                postTitle: 'Deleted',
+                postContent: reason,
+                deleted: true,
+                commentsDisabled: true
+            }
+        };
+        const result = await postsCollection.updateOne({ _id: new ObjectId(postId) }, update);
+        if (result.modifiedCount === 1) {
+            return { success: true };
+        } else {
+            return { success: false, message: 'Post not found' };
+        }
+    },
     checkCookie: async function(cookieData) {
         try {
     
