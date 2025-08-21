@@ -17,7 +17,7 @@ const CreatePost = () => {
     // Predefined categories
     const predefinedCategories = [
         'General', 'School Life', 'Gossip', 'Events', 'Sports', 
-        'Academics', 'Teachers', 'Students', 'Activities', 'News'
+        'Academics', 'Teachers', 'Students', 'Activities', 'News', 'Bell Sleeping', 'Other'
     ];
 
     useEffect(() => {
