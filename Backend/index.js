@@ -7,8 +7,24 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const app = express();
 
+// Security middleware
+const { 
+    checkBlocked, 
+    generalLimiter, 
+    speedLimiter 
+} = require('./middleware/rateLimiter');
+
+// Trust proxy for accurate IP detection
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(logger("dev"));
+
+// Apply security middleware first
+app.use(checkBlocked);
+app.use(speedLimiter);
+app.use(generalLimiter);
+
 app.use(cors({
     origin: function (origin, callback) {
         const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
@@ -23,8 +39,10 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+
+// Body parsing with size limits
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Serve uploaded images statically

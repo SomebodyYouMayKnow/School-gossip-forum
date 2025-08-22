@@ -4,8 +4,10 @@ const db = require("../db.js");
 const crypto = require("crypto");
 const jwt = require('jsonwebtoken');
 const config = require('../config.js');
+const { authLimiter } = require('../middleware/rateLimiter');
+const { validateLogin } = require('../middleware/validation');
 
-router.post("/", async (req, res) => {
+router.post("/", authLimiter, validateLogin, async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await db.getUserByEmail(email);

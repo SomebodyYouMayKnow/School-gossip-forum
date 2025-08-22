@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db.js');
 const emailService = require('../emailService.js');
+const { emailLimiter } = require('../middleware/rateLimiter');
+const { validateRequest } = require('../middleware/validation');
 const Utils = require('../Utils.js');
 
 // Verify email with token
@@ -35,7 +37,7 @@ router.get('/verify/:token', async (req, res) => {
 });
 
 // Resend verification email
-router.post('/resend', async (req, res) => {
+router.post('/resend', emailLimiter, validateRequest(['email']), async (req, res) => {
     try {
         const { email } = req.body;
         
