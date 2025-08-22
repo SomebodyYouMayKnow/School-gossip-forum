@@ -104,7 +104,7 @@ const ViewPosts = () => {
                 }
             } catch (error) {
                 console.log('Could not fetch categories');
-                setCategories(['All', 'General', 'School Life', 'Gossip', 'Events', 'Sports', 'Academics', 'Teachers', 'Students', 'Activities', 'News']);
+                setCategories(['General', 'School Life', 'Gossip', 'Events', 'Sports', 'Academics', 'Teachers', 'Students', 'Activities', 'News', 'Bell Sleeping', 'Other']);
             }
         };
         fetchCategories();

@@ -54,7 +54,9 @@ const ViewPosts = () => {
     const [order, setOrder] = useState('desc');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-
+    const [category, setCategory] = useState('All');
+    const [categories, setCategories] = useState(['All']);
+    const [expandedPosts, setExpandedPosts] = useState(new Set());
 
     useEffect(() => {
         const fetchPosts = async () => {
@@ -65,6 +67,7 @@ const ViewPosts = () => {
                 params += `&order=${order}`;
                 if (dateFrom) params += `&dateFrom=${dateFrom}`;
                 if (dateTo) params += `&dateTo=${dateTo}`;
+                if (category && category !== 'All') params += `&category=${encodeURIComponent(category)}`;
                 const response = await axios.get(`http://localhost:5555/api/recent-posts?${params}`);
                 const newPosts = response.data.posts || [];
                 // commentCount is now provided by backend as commentsCount
@@ -80,7 +83,22 @@ const ViewPosts = () => {
         };
         fetchPosts();
         // eslint-disable-next-line
-    }, [page, sortBy, order, dateFrom, dateTo]);
+    }, [page, sortBy, order, dateFrom, dateTo, category]);
+
+    // Fetch categories on component mount
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await axios.get('http://localhost:5555/api/recent-posts/categories');
+                const fetchedCategories = response.data.categories || [];
+                setCategories(['All', ...fetchedCategories]);
+            } catch (err) {
+                console.error('Failed to fetch categories:', err);
+                // Keep default 'All' if fetch fails
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -92,7 +110,6 @@ const ViewPosts = () => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, [loading, hasMore]);
-
 
     const navigate = useNavigate();
 
@@ -116,7 +133,6 @@ const ViewPosts = () => {
             userId = userData.userId || userData._id;
         }
     } catch {}
-
 
     const handleVote = async (e, postId, action) => {
         e.stopPropagation();
@@ -148,7 +164,6 @@ const ViewPosts = () => {
         if (post.downvotes && post.downvotes.includes(userId)) return 'downvote';
         return null;
     };
-
 
     // Debug: show current user info
     let debugUser = { userId: null, admin: null };
@@ -184,13 +199,20 @@ const ViewPosts = () => {
                         <option value="asc">Ascending</option>
                     </select>
                 </label>
+                <label>Post Type:
+                    <select value={category} onChange={e => { setCategory(e.target.value); setPage(1); }} style={{marginLeft:8}}>
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+                </label>
                 <label>From:
                     <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} style={{marginLeft:8}} />
                 </label>
                 <label>To:
                     <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} style={{marginLeft:8}} />
                 </label>
-                <button onClick={() => { setSortBy('recent'); setOrder('desc'); setDateFrom(''); setDateTo(''); setPage(1); }} style={{marginLeft:8}}>Reset</button>
+                <button onClick={() => { setSortBy('recent'); setOrder('desc'); setDateFrom(''); setDateTo(''); setCategory('All'); setPage(1); }} style={{marginLeft:8}}>Reset</button>
             </div>
             {error && <p style={{ color: 'red' }}>{error}</p>}
             {posts.length === 0 && !loading && !error && <p>No posts found.</p>}
@@ -302,8 +324,74 @@ const ViewPosts = () => {
                                     </>
                                 )}
                             </h3>
-                            <div className="post-meta">By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}</div>
-                            <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
+                            <div className="post-meta">
+                                By {post.fullName} on {post.creationDate ? new Date(post.creationDate).toLocaleString() : ''}
+                                {post.category && <span style={{marginLeft: '12px', background: '#e3f2fd', color: '#1976d2', padding: '2px 8px', borderRadius: '12px', fontSize: '0.85em', fontWeight: '500'}}>📂 {post.category}</span>}
+                            </div>
+                            <div className="post-content post-preview" style={{marginTop: '8px'}}>
+                                {(() => {
+                                    const fullText = stripHtml(post.postContent);
+                                    const isExpanded = expandedPosts.has(post._id);
+                                    const previewLength = isCurrentUserAdmin ? 400 : 180;
+                                    const shouldTruncate = fullText.length > previewLength;
+                                    
+                                    if (!shouldTruncate || isExpanded) {
+                                        return (
+                                            <div>
+                                                <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{fullText}</div>
+                                                {isExpanded && shouldTruncate && (
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setExpandedPosts(prev => {
+                                                                const newSet = new Set(prev);
+                                                                newSet.delete(post._id);
+                                                                return newSet;
+                                                            });
+                                                        }}
+                                                        style={{
+                                                            background: 'none', 
+                                                            border: 'none', 
+                                                            color: '#1976d2', 
+                                                            cursor: 'pointer', 
+                                                            textDecoration: 'underline',
+                                                            fontSize: '0.9em',
+                                                            marginTop: '8px',
+                                                            padding: '0'
+                                                        }}
+                                                    >
+                                                        Show less
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div>
+                                                <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{fullText.slice(0, previewLength)}...</div>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setExpandedPosts(prev => new Set([...prev, post._id]));
+                                                    }}
+                                                    style={{
+                                                        background: 'none', 
+                                                        border: 'none', 
+                                                        color: '#1976d2', 
+                                                        cursor: 'pointer', 
+                                                        textDecoration: 'underline',
+                                                        fontSize: '0.9em',
+                                                        marginTop: '8px',
+                                                        padding: '0'
+                                                    }}
+                                                >
+                                                    Show more
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                })()
+                            }</div>
                             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', cursor: 'default' }}>
                                 <span className="comment-count" style={{marginRight:'8px',color:'#4f8cff',fontWeight:500}}>
                                     💬 {post.commentCount}
