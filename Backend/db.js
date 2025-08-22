@@ -255,7 +255,7 @@ module.exports = {
             return { success: false, message: 'Error updating user lastPost' };
         }
     },
-    createPost: async function (email, userID, fullName, postTitle, postContent, category = 'General') {
+    createPost: async function (email, userID, fullName, postTitle, postContent, category = 'General', images = []) {
         const db = mongoClient.db('school-gossip-forum');
         const usersCollection = db.collection('Users');
         const postsCollection = db.collection('Posts');
@@ -274,7 +274,8 @@ module.exports = {
             admin: isAdmin,
             category: category,
             upvotes: [],
-            downvotes: []
+            downvotes: [],
+            images: images || []
         });
         return await this.getPostById(result.insertedId);
     },

@@ -205,6 +205,33 @@ const PostDetail = () => {
                     </div>
                 )}
                 <div className="post-content" dangerouslySetInnerHTML={{ __html: post.postContent }} />
+                {/* Display images if any */}
+                {post.images && post.images.length > 0 && (
+                    <div className="post-images" style={{ marginTop: '20px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                            {post.images.map((imagePath, index) => (
+                                <img
+                                    key={index}
+                                    src={`http://localhost:5555/uploads/${imagePath}`}
+                                    alt={`Post image ${index + 1}`}
+                                    style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '400px',
+                                        objectFit: 'contain',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ddd',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                    }}
+                                    onClick={() => {
+                                        // Open image in new tab for full view
+                                        window.open(`http://localhost:5555/uploads/${imagePath}`, '_blank');
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <div style={{ display: 'flex', gap: '12px', marginTop: '18px', alignItems: 'center' }}>
                     <button
                         className={`upvote-btn${voteState.userVote === 'upvote' ? ' upvoted' : ''}`}

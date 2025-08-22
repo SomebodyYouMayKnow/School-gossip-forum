@@ -377,6 +377,33 @@ const ViewPosts = () => {
                                 )}
                             </div>
                             <div className="post-content post-preview">{stripHtml(post.postContent).slice(0, 180)}{stripHtml(post.postContent).length > 180 ? '...' : ''}</div>
+                            {/* Display images if any */}
+                            {post.images && post.images.length > 0 && (
+                                <div className="post-images" style={{ marginTop: '12px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {post.images.map((imagePath, index) => (
+                                            <img
+                                                key={index}
+                                                src={`http://localhost:5555/uploads/${imagePath}`}
+                                                alt={`Post image ${index + 1}`}
+                                                style={{
+                                                    maxWidth: '200px',
+                                                    maxHeight: '200px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #ddd',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Open image in new tab for full view
+                                                    window.open(`http://localhost:5555/uploads/${imagePath}`, '_blank');
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', cursor: 'default' }}>
                                 <span className="comment-count" style={{marginRight:'8px',color:'#4f8cff',fontWeight:500}}>
                                     💬 {post.commentCount}

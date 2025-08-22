@@ -12,6 +12,8 @@ const CreatePost = () => {
     const [customCategory, setCustomCategory] = useState('');
     const [showCustomCategory, setShowCustomCategory] = useState(false);
     const [availableCategories, setAvailableCategories] = useState([]);
+    const [selectedImages, setSelectedImages] = useState([]);
+    const [imagePreview, setImagePreview] = useState([]);
     const navigate = useNavigate();
 
     // Predefined categories
@@ -50,17 +52,22 @@ const CreatePost = () => {
         // Use custom category if selected, otherwise use predefined
         const finalCategory = showCustomCategory ? customCategory : category;
         
-        const postData = {
-            userCookie: userData,
-            postTitle: title,
-            postContent: content,
-            category: finalCategory
-        };
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('userCookie', JSON.stringify(userData));
+        formData.append('postTitle', title);
+        formData.append('postContent', content);
+        formData.append('category', finalCategory);
+        
+        // Append images if any
+        selectedImages.forEach((image, index) => {
+            formData.append('images', image);
+        });
 
         try {
-            const response = await axios.post('http://localhost:5555/api/createpost', postData, {
+            const response = await axios.post('http://localhost:5555/api/createpost', formData, {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'multipart/form-data',
                 },
             });
             console.log('Create post response:', response.data);
@@ -89,6 +96,49 @@ const CreatePost = () => {
             setShowCustomCategory(false);
             setCategory(selectedCategory);
         }
+    };
+
+    const handleImageChange = (e) => {
+        const files = Array.from(e.target.files);
+        
+        // Validate file types and sizes
+        const validFiles = files.filter(file => {
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            
+            if (!validTypes.includes(file.type)) {
+                alert(`${file.name} is not a valid image type. Please use JPEG, PNG, GIF, or WebP.`);
+                return false;
+            }
+            
+            if (file.size > maxSize) {
+                alert(`${file.name} is too large. Please use images under 5MB.`);
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Limit to 5 images total
+        const totalImages = selectedImages.length + validFiles.length;
+        if (totalImages > 5) {
+            alert('You can only upload up to 5 images per post.');
+            return;
+        }
+        
+        setSelectedImages(prev => [...prev, ...validFiles]);
+        
+        // Create preview URLs
+        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+        setImagePreview(prev => [...prev, ...newPreviews]);
+    };
+    
+    const removeImage = (index) => {
+        // Revoke the object URL to free memory
+        URL.revokeObjectURL(imagePreview[index]);
+        
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
+        setImagePreview(prev => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -142,6 +192,64 @@ const CreatePost = () => {
                         onChange={setContent}
                         placeholder="Write your post here..."
                     />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="post-images" className="form-label">Images (Optional)</label>
+                    <input
+                        id="post-images"
+                        className="form-input"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        style={{ padding: '8px' }}
+                    />
+                    <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                        Upload up to 5 images (JPEG, PNG, GIF, WebP). Max 5MB each.
+                    </small>
+                    {imagePreview.length > 0 && (
+                        <div className="image-preview-container" style={{ marginTop: '12px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {imagePreview.map((preview, index) => (
+                                    <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
+                                        <img
+                                            src={preview}
+                                            alt={`Preview ${index + 1}`}
+                                            style={{
+                                                width: '100px',
+                                                height: '100px',
+                                                objectFit: 'cover',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ddd'
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '-8px',
+                                                right: '-8px',
+                                                background: '#ff4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '20px',
+                                                height: '20px',
+                                                cursor: 'pointer',
+                                                fontSize: '12px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <button className="submit-btn" type="submit">Submit</button>
             </form>

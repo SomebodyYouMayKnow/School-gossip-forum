@@ -4,6 +4,7 @@ const config = require("./config.js");
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const app = express();
 
 // Middleware
@@ -25,6 +26,9 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Test route to verify server is working
 app.get('/test', (req, res) => {
