@@ -179,14 +179,15 @@ module.exports = {
     },
 
     getUserByEmail: async function (email) {
-        let users = await this.listUsers();
-        email = email.toLowerCase().split('.').join("");
-        for (let i = 0; i < users.length; i++) {
-            if (users[i].email.toLowerCase().split(".").join("") == email) {
-                return users[i];
-            }
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Users');
+        try {
+            const normalizedEmail = email.toLowerCase().trim();
+            return await usersCollection.findOne({ email: normalizedEmail });
+        } catch (error) {
+            console.error('Error finding user by email:', error);
+            return null;
         }
-        return null;
     },
 
     getUserById: async function (id) {
@@ -214,7 +215,7 @@ module.exports = {
         }
     },
     
-    createUser: async function (email, password, fullName) {
+    createUser: async function (email, password, fullName, verificationToken = null) {
         let salt = Math.round((new Date().valueOf() * Math.random())) + "";
         let encryptedPassword = crypto.createHmac("sha1", salt).update(password).digest("hex");
 
@@ -234,9 +235,94 @@ module.exports = {
             lastComment: new Date(),
             lastChat: new Date(),
             savedPosts: [],
+            emailVerified: false,
+            verificationToken: verificationToken,
+            verificationExpires: verificationToken ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null, // 24 hours
         });
 
         return await this.getUserById(result.insertedId);
+    },
+
+    // Delete user by ID
+    deleteUser: async function (userId) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Users');
+        try {
+            const result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+            return result.deletedCount > 0;
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            return false;
+        }
+    },
+
+    // Verify user email with token
+    verifyUserEmail: async function (token) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Users');
+        
+        try {
+            console.log('Verifying token:', token);
+            
+            // First check if user exists with this token (regardless of expiration)
+            const userWithToken = await usersCollection.findOne({
+                verificationToken: token
+            });
+            
+            console.log('User with token found:', userWithToken ? 'YES' : 'NO');
+            
+            if (!userWithToken) {
+                return { success: false, message: 'Invalid verification token' };
+            }
+            
+            // Check if already verified
+            if (userWithToken.emailVerified) {
+                return { success: true, message: 'Email already verified', user: userWithToken };
+            }
+            
+            // Check if token is expired
+            if (userWithToken.verificationExpires && userWithToken.verificationExpires < new Date()) {
+                return { success: false, message: 'Verification token has expired. Please request a new verification email.' };
+            }
+
+            // Verify the user
+            const updateResult = await usersCollection.updateOne(
+                { _id: userWithToken._id },
+                {
+                    $set: { emailVerified: true },
+                    $unset: { verificationToken: "", verificationExpires: "" }
+                }
+            );
+            
+            console.log('Update result:', updateResult.modifiedCount);
+
+            return { success: true, message: 'Email verified successfully', user: userWithToken };
+        } catch (error) {
+            console.error('Verification error:', error);
+            return { success: false, message: 'Verification failed', error: error.message };
+        }
+    },
+
+    // Update verification token for resending
+    updateVerificationToken: async function (email, newToken) {
+        const db = mongoClient.db('school-gossip-forum');
+        const usersCollection = db.collection('Users');
+        
+        try {
+            const result = await usersCollection.updateOne(
+                { email: email, emailVerified: false },
+                {
+                    $set: {
+                        verificationToken: newToken,
+                        verificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+                    }
+                }
+            );
+
+            return result.modifiedCount > 0;
+        } catch (error) {
+            return false;
+        }
     },
     updateUserLastPost: async function (userId, newLastPostDate) {
         const db = mongoClient.db('school-gossip-forum');

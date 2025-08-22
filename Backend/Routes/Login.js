@@ -20,6 +20,16 @@ router.post("/", async (req, res) => {
             .digest("hex");
         if (!user.banned) {
             if (encryptedPassword === user.password) {
+                // Check if email is verified
+                if (!user.emailVerified) {
+                    return res.json({
+                        success: false,
+                        message: "Please verify your email address before logging in. Check your inbox for the verification email.",
+                        emailVerified: false,
+                        email: user.email
+                    });
+                }
+
                 // Create token with all necessary user data
                 const tokenPayload = {
                     userId: user._id.toString(),
@@ -40,7 +50,8 @@ router.post("/", async (req, res) => {
                     userId: user._id.toString(),
                     email: user.email,
                     fullName: user.fullName,
-                    admin: user.admin || false
+                    admin: user.admin || false,
+                    emailVerified: true
                 });
             } else {
                 res.json({ success: false, message: "Invalid password" });

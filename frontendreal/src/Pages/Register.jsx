@@ -27,9 +27,7 @@ const Register = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        console.log('Email:', email);
-        console.log('Full Name:', fullName);
-        console.log('Password:', password);
+        
         try {
             const response = await axios.post('http://localhost:5555/api/Register', {
                 email: email,
@@ -40,26 +38,30 @@ const Register = () => {
                     'Content-Type': 'application/json',
                 },
             });
-            if (response.data.token) {
-                const data = {
-                    token: response.data.token,
-                    userId: response.data.userId,
-                    fullName: response.data.fullName,
-                    email: response.data.email,
-                    admin: response.data.admin,
-                };
-                console.log(data);
 
-                // Set cookie with user data, expires in 24 hours
-                Cookies.set('user', JSON.stringify(data), { expires: 1 });
-
-                // Redirect to home page
-                navigate('/');
+            // Handle successful registration (email verification required)
+            if (response.data.success) {
+                const message = response.data.isResend 
+                    ? 'New verification email sent! Please check your inbox and click the verification link.'
+                    : 'Registration successful! Please check your email and click the verification link to activate your account.';
+                
+                alert(message);
+                
+                // Redirect to login page
+                navigate('/Login');
             } else {
-                alert(response.data.error.message);
+                // Handle registration errors
+                alert(response.data.error?.message || 'Registration failed. Please try again.');
             }
-        } catch (e) {
-            console.log(e);
+        } catch (error) {
+            console.error('Registration error:', error);
+            
+            // Handle network or server errors
+            if (error.response?.data?.error?.message) {
+                alert(error.response.data.error.message);
+            } else {
+                alert('Network error. Please check your connection and try again.');
+            }
         }
     };
 

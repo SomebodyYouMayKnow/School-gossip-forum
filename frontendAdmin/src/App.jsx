@@ -9,6 +9,8 @@ import Test from './Pages/test';
 import CreatePostPage from './Pages/CreatePost';
 import ViewPosts from './Pages/viewposts';
 import PostDetail from './Pages/PostDetail';
+import EmailVerification from './Pages/EmailVerification';
+
 function App() {
   return (
     <>
@@ -21,8 +23,9 @@ function App() {
         <Route path='/Register' element={<Register />} />
         <Route path="/test" element={<Test />} />
         <Route path='/Createpost' element={<CreatePostPage />} />
-  <Route path='/viewposts' element={<ViewPosts />} />
-  <Route path='/posts' element={<PostDetail />} />
+        <Route path='/viewposts' element={<ViewPosts />} />
+        <Route path='/posts' element={<PostDetail />} />
+        <Route path='/verify-email' element={<EmailVerification />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </>

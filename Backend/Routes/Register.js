@@ -1,5 +1,6 @@
 const db = require("../db");
 const Utils = require("../Utils");
+const emailService = require("../emailService");
 
 module.exports = async function (req, res, next) {
     const fullNameRegex = /^[a-zA-Z0-9_]+$/;
@@ -53,20 +54,60 @@ module.exports = async function (req, res, next) {
 
     let existingUser = await db.getUserByEmail(email);
     if (existingUser) {
-        Utils.sendError(res, "User email is already registered");
-        return;
+        // Check if user is unverified - allow resending verification
+        if (!existingUser.emailVerified) {
+            const newToken = emailService.generateVerificationToken();
+            const updated = await db.updateVerificationToken(email, newToken);
+            
+            if (updated) {
+                const emailResult = await emailService.sendVerificationEmail(email, existingUser.fullName, newToken);
+                const response = {
+                    success: true,
+                    message: 'Account exists but not verified. New verification email sent! Please check your inbox.',
+                    userId: existingUser._id,
+                    fullName: existingUser.fullName,
+                    email: existingUser.email,
+                    emailVerified: false,
+                    verificationEmailSent: emailResult.success,
+                    isResend: true
+                };
+                return Utils.sendResult(res, response);
+            }
+        }
+        
+        return Utils.sendError(res, "User email is already registered and verified");
     }
 
-    let user = await db.createUser(email, password, fullName);
-    console.log(user);
-    let token = Utils.createToken(user._id, user.email, false);
-    const response = {
-        token: token,
-        userId: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        admin: user.admin
-    };
-    console.log('Response:', response); // Log the response
-    Utils.sendResult(res, response);
+    try {
+        // Generate verification token
+        const verificationToken = emailService.generateVerificationToken();
+        
+        // Create user with verification token
+        let user = await db.createUser(email, password, fullName, verificationToken);
+        
+        // Send verification email
+        const emailResult = await emailService.sendVerificationEmail(email, fullName, verificationToken);
+        
+        if (!emailResult.success) {
+            console.error('Failed to send verification email:', emailResult.message);
+            // Delete the user if email failed to send
+            await db.deleteUser(user._id);
+            return Utils.sendError(res, "Failed to send verification email. Please try again.");
+        }
+        
+        // Return response indicating email verification is required
+        const response = {
+            success: true,
+            message: 'Registration successful! Please check your email to verify your account before logging in.',
+            userId: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            emailVerified: false,
+            verificationEmailSent: true
+        };
+        Utils.sendResult(res, response);
+    } catch (error) {
+        console.error('Registration error:', error);
+        Utils.sendError(res, "Registration failed. Please try again.");
+    }
 };
