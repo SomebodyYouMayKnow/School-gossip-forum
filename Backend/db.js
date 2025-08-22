@@ -272,7 +272,9 @@ module.exports = {
             userID: userID,
             createdAt: new Date(),
             admin: isAdmin,
-            category: category
+            category: category,
+            upvotes: [],
+            downvotes: []
         });
         return await this.getPostById(result.insertedId);
     },
@@ -436,21 +438,11 @@ module.exports = {
                     actualSort = { _id: -1 }; // fallback to ID sorting
                 }
             } else if (sortBy === 'upvotes') {
-                // Check if upvotes field exists, if not, sort by _id
-                if (samplePost && samplePost.upvotes) {
-                    // We'll add a computed field for upvotes count in the pipeline
-                    actualSort = { upvotesCount: order };
-                } else {
-                    actualSort = { _id: -1 };
-                }
+                // Always sort by upvotes count (computed field handles missing arrays)
+                actualSort = { upvotesCount: order };
             } else if (sortBy === 'downvotes') {
-                // Check if downvotes field exists, if not, sort by _id
-                if (samplePost && samplePost.downvotes) {
-                    // We'll add a computed field for downvotes count in the pipeline
-                    actualSort = { downvotesCount: order };
-                } else {
-                    actualSort = { _id: -1 };
-                }
+                // Always sort by downvotes count (computed field handles missing arrays)
+                actualSort = { downvotesCount: order };
             } else if (sortBy === 'comments') {
                 // For comments, we'll sort by the computed commentsCount field
                 actualSort = { commentsCount: order };
@@ -559,6 +551,35 @@ module.exports = {
                 : null
         };
     },
+
+    // Migrate existing posts to have upvotes/downvotes arrays
+    migratePostsForVoting: async function () {
+        const db = mongoClient.db('school-gossip-forum');
+        const postsCollection = db.collection('Posts');
+        try {
+            // Update all posts that don't have upvotes or downvotes arrays
+            const result = await postsCollection.updateMany(
+                {
+                    $or: [
+                        { upvotes: { $exists: false } },
+                        { downvotes: { $exists: false } }
+                    ]
+                },
+                {
+                    $set: {
+                        upvotes: [],
+                        downvotes: []
+                    }
+                }
+            );
+            console.log(`Migrated ${result.modifiedCount} posts to include upvotes/downvotes arrays`);
+            return { success: true, modifiedCount: result.modifiedCount };
+        } catch (error) {
+            console.error('Error migrating posts:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     // Set commentsDisabled for a post (admin only)
     setPostCommentsDisabled: async function (postId, adminId, pause) {
         const db = mongoClient.db('school-gossip-forum');
@@ -567,8 +588,8 @@ module.exports = {
         if (!adminUser || !(adminUser.admin === true || adminUser.admin === 'true')) {
             return { success: false, message: 'Not authorized' };
         }
-        const update = { $set: { commentsDisabled: pause } };
-        const result = await postsCollection.updateOne({ _id: new ObjectId(postId) }, update);
+        const updateObj = { $set: { commentsDisabled: pause } };
+        const result = await postsCollection.updateOne({ _id: new ObjectId(postId) }, updateObj);
         if (result.modifiedCount === 1) {
             return { success: true };
         } else {
