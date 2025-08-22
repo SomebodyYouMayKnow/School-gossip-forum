@@ -1,10 +1,10 @@
 // Simple script to remove test users - run with: node reset-test-data.js
-const db = require('./db.js');
+const db = require('../db.js');
 
 setTimeout(async () => {
     try {
         const { MongoClient } = require("mongodb");
-        const config = require("./config.js");
+        const config = require("../config.js");
         const client = new MongoClient(config.CONNECTION_STRING);
         
         await client.connect();

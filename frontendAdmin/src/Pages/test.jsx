@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import './Pages.css';
+import { BACKEND_ADDRESS } from '../config/api';
 
 const Test = () => {
     const [cookieStatus, setCookieStatus] = useState('');
@@ -18,7 +19,7 @@ const Test = () => {
             const userData = JSON.parse(userCookie);
             console.log('Sending cookie data:', userData);
             
-            const response = await axios.post('http://localhost:5555/api/checkcookie', userData, {
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/checkcookie`, userData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -42,7 +43,7 @@ const Test = () => {
 
     const testConnection = async () => {
         try {
-            const response = await axios.get('http://localhost:5555/test');
+            const response = await axios.get(`${BACKEND_ADDRESS}/test`);
             console.log('Test response:', response.data);
             setCookieStatus('Server test successful: ' + response.data.message);
         } catch (error) {

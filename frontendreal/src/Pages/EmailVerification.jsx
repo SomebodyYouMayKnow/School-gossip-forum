@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import axios from 'axios';
 import './Pages.css';
+import { BACKEND_ADDRESS } from '../config/api';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 function EmailVerification() {
     const [searchParams] = useSearchParams();
@@ -8,9 +10,9 @@ function EmailVerification() {
     const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
     const [message, setMessage] = useState('Verifying your email...');
     const [email, setEmail] = useState('');
-    const hasVerified = useRef(false);
+    const hasVerified = useState(false);
 
-    useEffect(() => {
+    useState(() => {
         const token = searchParams.get('token');
         
         if (!token) {
@@ -20,22 +22,17 @@ function EmailVerification() {
         }
 
         // Prevent multiple verification attempts
-        if (!hasVerified.current) {
-            hasVerified.current = true;
+        if (!hasVerified) {
+            hasVerified(true);
             verifyEmail(token);
         }
     }, [searchParams]);
 
     const verifyEmail = async (token) => {
         try {
-            const response = await fetch(`http://localhost:5555/api/email-verification/verify/${token}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+            const response = await axios.get(`${BACKEND_ADDRESS}/api/verify-email?token=${token}`);
 
-            const data = await response.json();
+            const data = response.data;
 
             if (data.success) {
                 setStatus('success');
@@ -64,13 +61,7 @@ function EmailVerification() {
         }
 
         try {
-            const response = await fetch('http://localhost:5555/api/email-verification/resend', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email: email }),
-            });
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/resend-verification`, { email: email });
 
             const data = await response.json();
             

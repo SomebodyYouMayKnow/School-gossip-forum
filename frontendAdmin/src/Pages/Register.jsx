@@ -1,9 +1,10 @@
 // filepath: /c:/Dev/School-gossip-forum/frontendreal/src/Pages/Register.jsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useNavigate } from 'react-router-dom';
 import './Pages.css';
+import { BACKEND_ADDRESS } from '../config/api';
 
 
 
@@ -29,7 +30,7 @@ const Register = () => {
         event.preventDefault();
         
         try {
-            const response = await axios.post('http://localhost:5555/api/Register', {
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/Register`, {
                 email: email,
                 fullName: fullName,
                 password: password

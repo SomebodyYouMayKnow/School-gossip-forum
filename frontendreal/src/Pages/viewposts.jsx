@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useSearchParams } from 'react-router-dom';
 import './Pages.css';
+import { BACKEND_ADDRESS } from '../config/api';
 
 // Delete confirmation modal
 function DeleteConfirmModal({ isOpen, onClose, onConfirm, postTitle }) {
@@ -98,7 +99,7 @@ const ViewPosts = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await axios.get('http://localhost:5555/api/categories');
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/categories`);
                 if (response.data.categories) {
                     setCategories(['All', ...response.data.categories]);
                 }
@@ -127,7 +128,7 @@ const ViewPosts = () => {
                 console.log('Fetching posts with params:', params);
                 console.log('Selected category:', selectedCategory);
                 
-                const response = await axios.get(`http://localhost:5555/api/recent-posts?${params}`);
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/recent-posts?${params}`);
                 const newPosts = response.data.posts || [];
                 // commentCount is now provided by backend as commentsCount
                 const postsWithComments = newPosts.map(post => ({ ...post, commentCount: post.commentsCount ?? 0 }));
@@ -192,7 +193,7 @@ const ViewPosts = () => {
             return;
         }
         try {
-            const response = await axios.post('http://localhost:5555/api/vote', { postId, userId, action });
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/vote`, { postId, userId, action });
             setPosts(prevPosts => prevPosts.map(post =>
                 post._id === postId
                     ? {
@@ -213,7 +214,7 @@ const ViewPosts = () => {
         if (!postToDelete) return;
         
         try {
-            await axios.delete(`http://localhost:5555/api/post/${postToDelete._id}`, {
+            await axios.delete(`${BACKEND_ADDRESS}/api/post/${postToDelete._id}`, {
                 data: { userId }
             });
             
@@ -384,7 +385,7 @@ const ViewPosts = () => {
                                         {post.images.map((imagePath, index) => (
                                             <img
                                                 key={index}
-                                                src={`http://localhost:5555/uploads/${imagePath}`}
+                                                src={`${BACKEND_ADDRESS}/uploads/${imagePath}`}
                                                 alt={`Post image ${index + 1}`}
                                                 style={{
                                                     maxWidth: '200px',
@@ -397,7 +398,7 @@ const ViewPosts = () => {
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     // Open image in new tab for full view
-                                                    window.open(`http://localhost:5555/uploads/${imagePath}`, '_blank');
+                                                    window.open(`${BACKEND_ADDRESS}/uploads/${imagePath}`, '_blank');
                                                 }}
                                             />
                                         ))}

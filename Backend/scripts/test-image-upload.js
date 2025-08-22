@@ -7,7 +7,7 @@ const categories = [
     'academics', 'teachers', 'students', 'activities', 'news', 'bell-sleeping', 'other'
 ];
 
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(__dirname, '../uploads');
 
 console.log('Testing image upload directory structure...');
 

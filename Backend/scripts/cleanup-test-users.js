@@ -1,6 +1,6 @@
 // Script to check and clean up test users
 const { MongoClient } = require("mongodb");
-const config = require("./config.js");
+const config = require("../config.js");
 
 async function cleanupTestUsers() {
     const client = new MongoClient(config.CONNECTION_STRING);

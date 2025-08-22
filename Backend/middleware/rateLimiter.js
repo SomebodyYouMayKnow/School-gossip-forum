@@ -5,7 +5,7 @@ const slowDown = require('express-slow-down');
 const violationStore = new Map();
 const ipBlockList = new Set();
 
-// Helper function to get client IP
+// Helper function to get client IP with IPv6 support
 function getClientIP(req) {
     return req.ip || 
            req.connection.remoteAddress || 
@@ -76,7 +76,7 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('auth'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // Registration - even stricter
@@ -90,7 +90,7 @@ const registerLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('register'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // Email verification resend
@@ -104,7 +104,7 @@ const emailLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('email'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // Post creation limits
@@ -118,7 +118,7 @@ const postLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('post'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // Comment limits
@@ -132,7 +132,7 @@ const commentLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('comment'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // Vote limits (upvote/downvote)
@@ -146,7 +146,7 @@ const voteLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('vote'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // General API limiter
@@ -160,16 +160,17 @@ const generalLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: createRateLimitHandler('general'),
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip
 });
 
 // Speed limiter for suspicious rapid requests
 const speedLimiter = slowDown({
     windowMs: 15 * 60 * 1000, // 15 minutes
     delayAfter: 50, // Allow 50 requests per 15 minutes at full speed
-    delayMs: 500, // Add 500ms delay per request after delayAfter
+    delayMs: () => 500, // Add 500ms delay per request after delayAfter
     maxDelayMs: 20000, // Maximum delay of 20 seconds
-    keyGenerator: getClientIP
+    keyGenerator: (req) => req.ip,
+    validate: { delayMs: false } // Disable delayMs warning
 });
 
 module.exports = {

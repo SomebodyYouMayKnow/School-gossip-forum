@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useNavigate } from 'react-router-dom';
 import './Pages.css';
+import { BACKEND_ADDRESS } from '../config/api';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -23,7 +24,7 @@ const Login = () => {
         console.log('Password:', password);
 
         try {
-            const response = await axios.post('http://localhost:5555/api/Login', {
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/Login`, {
                 email: email,
                 password: password
             }, {

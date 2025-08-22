@@ -1,7 +1,7 @@
 // Security implementation test script
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3001/api';
+const BASE_URL = 'http://localhost:5555/api';
 
 async function testSecurity() {
     console.log('🔒 Testing Security Implementation...\n');
@@ -97,7 +97,7 @@ async function testSecurity() {
     }
     
     console.log('\n🔒 Security test completed!');
-    console.log('\nNote: Some tests may fail if server is not running on port 3001');
+    console.log('\nNote: Some tests may fail if server is not running on port 5555');
     console.log('To run server: npm run dev');
 }
 

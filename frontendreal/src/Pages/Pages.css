@@ -415,6 +415,115 @@ body {
     }
 }
 
+/* Contact Page Styles */
+.contact-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: #f8f9fa;
+    min-height: 80vh;
+}
+
+.contact-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.contact-content h1 {
+    color: #333;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+}
+
+.contact-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.help-item {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.help-item h3 {
+    color: #333;
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.help-item p {
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.contact-email {
+    margin: 3rem 0;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    color: white;
+}
+
+.contact-email h2 {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.email-link {
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-decoration: none;
+    padding: 0.8rem 1.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 25px;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.email-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    color: #fff;
+    text-decoration: none;
+}
+
+.contact-info {
+    margin-top: 2rem;
+    color: #666;
+}
+
+.contact-info p {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .contact-container {
+        padding: 1rem;
+    }
+    
+    .contact-content {
+        padding: 1.5rem;
+    }
+    
+    .contact-content h1 {
+        font-size: 2rem;
+    }
+    
+    .contact-section {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Login and Register styles */
 .Forms_Sign_In, .Forms_Register {
     width: 100%;

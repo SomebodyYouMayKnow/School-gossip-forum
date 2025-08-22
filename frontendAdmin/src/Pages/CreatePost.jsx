@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useNavigate } from 'react-router-dom';
+import './Pages.css';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { BACKEND_ADDRESS } from '../config/api';
 
 const CreatePost = () => {
     const [title, setTitle] = useState('');
@@ -26,7 +28,7 @@ const CreatePost = () => {
         // Fetch existing categories from the database
         const fetchCategories = async () => {
             try {
-                const response = await axios.get('http://localhost:5555/api/categories');
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/categories`);
                 if (response.data.categories) {
                     setAvailableCategories(response.data.categories);
                 }
@@ -65,7 +67,7 @@ const CreatePost = () => {
         });
 
         try {
-            const response = await axios.post('http://localhost:5555/api/createpost', formData, {
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/createpost`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 // Simple modal for delete post
 function DeletePostModal({ open, onClose, onDelete, reason, setReason, hide, setHide }) {
     if (!open) return null;
@@ -28,11 +29,11 @@ function DeletePostModal({ open, onClose, onDelete, reason, setReason, hide, set
         </div>
     );
 }
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useSearchParams } from 'react-router-dom';
 import './Pages.css';
-
+import { BACKEND_ADDRESS } from '../config/api';
 
 
 
@@ -68,7 +69,7 @@ const ViewPosts = () => {
                 if (dateFrom) params += `&dateFrom=${dateFrom}`;
                 if (dateTo) params += `&dateTo=${dateTo}`;
                 if (category && category !== 'All') params += `&category=${encodeURIComponent(category)}`;
-                const response = await axios.get(`http://localhost:5555/api/recent-posts?${params}`);
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/recent-posts?${params}`);
                 const newPosts = response.data.posts || [];
                 // commentCount is now provided by backend as commentsCount
                 const postsWithComments = newPosts.map(post => ({ ...post, commentCount: post.commentsCount ?? 0 }));
@@ -89,7 +90,7 @@ const ViewPosts = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await axios.get('http://localhost:5555/api/recent-posts/categories');
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/categories`);
                 const fetchedCategories = response.data.categories || [];
                 setCategories(['All', ...fetchedCategories]);
             } catch (err) {
@@ -111,7 +112,7 @@ const ViewPosts = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [loading, hasMore]);
 
-    const navigate = useNavigate();
+    const navigate = useSearchParams();
 
     // Helper to strip HTML tags for preview
     const stripHtml = (html) => {
@@ -141,7 +142,7 @@ const ViewPosts = () => {
             return;
         }
         try {
-            const response = await axios.post('http://localhost:5555/api/vote', { postId, userId, action });
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/vote`, { postId, userId, action });
             setPosts(prevPosts => prevPosts.map(post =>
                 post._id === postId
                     ? {
@@ -289,10 +290,10 @@ const ViewPosts = () => {
                         const userCookie = Cookies.get('user');
                         const userData = userCookie ? JSON.parse(userCookie) : {};
                         const adminId = userData.userId || userData._id;
-                        await axios.patch(`http://localhost:5555/api/post/${postId}/delete`, { reason, adminId, hide });
+                        await axios.patch(`${BACKEND_ADDRESS}/api/post/${postId}/delete`, { reason, adminId, hide }, {pause: !post.commentsDisabled });
                         setPosts(prevPosts => prevPosts.map(p =>
                             p._id === postId
-                                ? { ...p, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true, hidden: !!hide }
+                                ? { ...p, commentsDisabled: !post.commentsDisabled }
                                 : p
                         ));
                     } catch (err) {
@@ -308,7 +309,7 @@ const ViewPosts = () => {
                                                     const userCookie = Cookies.get('user');
                                                     const userData = userCookie ? JSON.parse(userCookie) : {};
                                                     const adminId = userData.userId || userData._id;
-                                                    await axios.patch(`http://localhost:5555/api/post/${post._id}/pause`, { adminId, pause: !post.commentsDisabled });
+                                                    await axios.patch(`${BACKEND_ADDRESS}/api/post/${post._id}/pause`, { adminId, pause: !post.commentsDisabled });
                                                     setPosts(prevPosts => prevPosts.map(p =>
                                                         p._id === post._id
                                                             ? { ...p, commentsDisabled: !post.commentsDisabled }
@@ -399,7 +400,7 @@ const ViewPosts = () => {
                                         {post.images.map((imagePath, index) => (
                                             <img
                                                 key={index}
-                                                src={`http://localhost:5555/uploads/${imagePath}`}
+                                                src={`${BACKEND_ADDRESS}/uploads/${imagePath}`}
                                                 alt={`Post image ${index + 1}`}
                                                 style={{
                                                     maxWidth: '200px',
@@ -412,7 +413,7 @@ const ViewPosts = () => {
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     // Open image in new tab for full view
-                                                    window.open(`http://localhost:5555/uploads/${imagePath}`, '_blank');
+                                                    window.open(`${BACKEND_ADDRESS}/uploads/${imagePath}`, '_blank');
                                                 }}
                                             />
                                         ))}
@@ -448,7 +449,7 @@ const ViewPosts = () => {
                                             e.stopPropagation();
                                             if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
                                                 try {
-                                                    await axios.delete(`http://localhost:5555/api/post/${post._id}`, {
+                                                    await axios.delete(`${BACKEND_ADDRESS}/api/post/${post._id}`, {
                                                         data: { userId }
                                                     });
                                                     // Remove the post from the local state

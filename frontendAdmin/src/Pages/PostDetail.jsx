@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import './Pages.css';
+import { BACKEND_ADDRESS } from '../config/api';
 
 function useQuery() {
     return new URLSearchParams(useLocation().search);
@@ -24,7 +25,7 @@ const PostDetail = () => {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const response = await axios.get(`http://localhost:5555/api/post/${postId}`);
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/post/${postId}`);
                 setPost(response.data.post);
                 setVoteState({
                     upvotes: response.data.post.upvotes ? response.data.post.upvotes.length : 0,
@@ -39,7 +40,7 @@ const PostDetail = () => {
         };
         const fetchComments = async () => {
             try {
-                const response = await axios.get(`http://localhost:5555/api/comment/${postId}`);
+                const response = await axios.get(`${BACKEND_ADDRESS}/api/comment/${postId}`);
                 setComments(response.data.comments || []);
             } catch {}
         };
@@ -61,7 +62,7 @@ const PostDetail = () => {
             const userCookie = Cookies.get('user');
             const userData = userCookie ? JSON.parse(userCookie) : {};
             const fullName = userData.fullName || 'Anonymous';
-            const response = await axios.post('http://localhost:5555/api/comment', {
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/comment`, {
                 postId,
                 userId,
                 fullName,
@@ -105,7 +106,7 @@ const PostDetail = () => {
             return;
         }
         try {
-            const response = await axios.post('http://localhost:5555/api/vote', { postId, userId, action });
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/vote`, { postId, userId, action });
             setVoteState({
                 upvotes: response.data.upvotes,
                 downvotes: response.data.downvotes,
@@ -150,7 +151,7 @@ const PostDetail = () => {
                                         const userCookie = Cookies.get('user');
                                         const userData = userCookie ? JSON.parse(userCookie) : {};
                                         const adminId = userData.userId || userData._id;
-                                        await axios.patch(`http://localhost:5555/api/post/${post._id}/delete`, { reason, adminId });
+                                        await axios.patch(`${BACKEND_ADDRESS}/api/post/${post._id}/delete`, { reason, adminId });
                                         setPost(prev => prev ? { ...prev, postTitle: 'Deleted', postContent: reason, deleted: true, commentsDisabled: true } : prev);
                                     } catch (err) {
                                         alert('Failed to delete post.');
@@ -168,7 +169,7 @@ const PostDetail = () => {
                                         const userCookie = Cookies.get('user');
                                         const userData = userCookie ? JSON.parse(userCookie) : {};
                                         const adminId = userData.userId || userData._id;
-                                        await axios.patch(`http://localhost:5555/api/post/${post._id}/pause`, { adminId, pause: !post.commentsDisabled });
+                                        await axios.patch(`${BACKEND_ADDRESS}/api/post/${post._id}/pause`, { adminId, pause: !post.commentsDisabled });
                                         setPost(prev => prev ? { ...prev, commentsDisabled: !prev.commentsDisabled } : prev);
                                     } catch (err) {
                                         alert('Failed to toggle post interaction.');
@@ -206,7 +207,7 @@ const PostDetail = () => {
                             {post.images.map((imagePath, index) => (
                                 <img
                                     key={index}
-                                    src={`http://localhost:5555/uploads/${imagePath}`}
+                                    src={`${BACKEND_ADDRESS}/uploads/${imagePath}`}
                                     alt={`Post image ${index + 1}`}
                                     style={{
                                         maxWidth: '100%',
@@ -219,7 +220,7 @@ const PostDetail = () => {
                                     }}
                                     onClick={() => {
                                         // Open image in new tab for full view
-                                        window.open(`http://localhost:5555/uploads/${imagePath}`, '_blank');
+                                        window.open(`${BACKEND_ADDRESS}/uploads/${imagePath}`, '_blank');
                                     }}
                                 />
                             ))}
@@ -251,7 +252,7 @@ const PostDetail = () => {
                             onClick={async () => {
                                 if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
                                     try {
-                                        await axios.delete(`http://localhost:5555/api/post/${postId}`, {
+                                        await axios.delete(`${BACKEND_ADDRESS}/api/post/${postId}`, {
                                             data: { userId }
                                         });
                                         alert('Post deleted successfully');
@@ -315,7 +316,7 @@ const PostDetail = () => {
                                                     const userCookie = Cookies.get('user');
                                                     const userData = userCookie ? JSON.parse(userCookie) : {};
                                                     const adminId = userData.userId || userData._id;
-                                                    await axios.delete('http://localhost:5555/api/comment', {
+                                                    await axios.delete(`${BACKEND_ADDRESS}/api/comment`, {
                                                         data: { postId, commentId: comment._id, adminId }
                                                     });
                                                     setComments(comments => comments.filter(c => c._id !== comment._id));
@@ -336,7 +337,7 @@ const PostDetail = () => {
                                     onClick={async () => {
                                         if (!userId) { alert('You must be logged in to like comments.'); return; }
                                         try {
-                                            await axios.post('http://localhost:5555/api/comment/like', {
+                                            await axios.post(`${BACKEND_ADDRESS}/api/comment/like`, {
                                                 postId,
                                                 commentId: comment._id,
                                                 userId,
@@ -368,7 +369,7 @@ const PostDetail = () => {
                                         onClick={async () => {
                                             if (!confirm('Are you sure you want to delete this comment?')) return;
                                             try {
-                                                await axios.delete('http://localhost:5555/api/comment/user', {
+                                                await axios.delete(`${BACKEND_ADDRESS}/api/comment/user`, {
                                                     data: { postId, commentId: comment._id, userId }
                                                 });
                                                 // Remove the comment from local state
@@ -400,7 +401,7 @@ const PostDetail = () => {
                                                 const userCookie = Cookies.get('user');
                                                 const userData = userCookie ? JSON.parse(userCookie) : {};
                                                 const fullName = userData.fullName || 'Anonymous';
-                                                const response = await axios.post('http://localhost:5555/api/comment/reply', {
+                                                const response = await axios.post(`${BACKEND_ADDRESS}/api/comment/reply`, {
                                                     postId,
                                                     parentCommentId: comment._id,
                                                     userId,
@@ -461,7 +462,7 @@ const PostDetail = () => {
                                                                         const userCookie = Cookies.get('user');
                                                                         const userData = userCookie ? JSON.parse(userCookie) : {};
                                                                         const adminId = userData.userId || userData._id;
-                                                                        await axios.delete('http://localhost:5555/api/comment', {
+                                                                        await axios.delete(`${BACKEND_ADDRESS}/api/comment`, {
                                                                             data: { postId, commentId: reply._id, adminId }
                                                                         });
                                                                         setComments(comments => comments.map(c =>
@@ -496,7 +497,7 @@ const PostDetail = () => {
                                                             onClick={async () => {
                                                                 if (!confirm('Are you sure you want to delete this reply?')) return;
                                                                 try {
-                                                                    await axios.delete('http://localhost:5555/api/comment/user', {
+                                                                    await axios.delete(`${BACKEND_ADDRESS}/api/comment/user`, {
                                                                         data: { postId, commentId: reply._id, userId }
                                                                     });
                                                                     // Remove the reply from local state
