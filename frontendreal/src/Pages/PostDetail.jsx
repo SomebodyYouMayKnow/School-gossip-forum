@@ -28,15 +28,10 @@ function DeletePostModal({ open, onClose, onDelete, reason, setReason, hide, set
     );
 }
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import './Pages.css';
 import { BACKEND_ADDRESS } from '../config/api';
-
-function useQuery() {
-    return new URLSearchParams(useLocation().search);
-}
 
 const PostDetail = () => {
     // Modal state hooks must be at the top
@@ -44,8 +39,11 @@ const PostDetail = () => {
     const [deleteReason, setDeleteReason] = useState('');
     const [deleteHide, setDeleteHide] = useState(false);
 
-    const params = useParams();
-    const postId = params.postid;
+    const postId = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search).get('postid') : null;
+    if (typeof window !== 'undefined') {
+        // Debug marker to verify which app/component file is active
+        console.log('[frontendreal] PostDetail mounted, postId =', postId);
+    }
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -81,6 +79,9 @@ const PostDetail = () => {
         if (postId) {
             fetchPost();
             fetchComments();
+        } else {
+            setError('No post specified.');
+            setLoading(false);
         }
         // eslint-disable-next-line
     }, [postId]);

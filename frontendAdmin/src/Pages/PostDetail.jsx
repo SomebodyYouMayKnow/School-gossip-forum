@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import './Pages.css';
 import { BACKEND_ADDRESS } from '../config/api';
 
-function useQuery() {
-    return new URLSearchParams(useLocation().search);
-}
-
 const PostDetail = () => {
-    const query = useQuery();
-    const postId = query.get('postid');
+    const postId = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search).get('postid') : null;
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
