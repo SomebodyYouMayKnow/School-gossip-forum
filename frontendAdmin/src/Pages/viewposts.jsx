@@ -31,7 +31,7 @@ function DeletePostModal({ open, onClose, onDelete, reason, setReason, hide, set
 }
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Pages.css';
 import { BACKEND_ADDRESS } from '../config/api';
 
@@ -112,7 +112,7 @@ const ViewPosts = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [loading, hasMore]);
 
-    const navigate = useSearchParams();
+    const navigate = useNavigate();
 
     // Helper to strip HTML tags for preview
     const stripHtml = (html) => {
