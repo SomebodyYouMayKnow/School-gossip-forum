@@ -33,6 +33,15 @@ export default function Chat() {
     path: '/socket.io'
   }), []);
 
+  // Load saved room on first mount
+  useEffect(() => {
+    try {
+      const saved = (localStorage.getItem('chatRoom') || '').toLowerCase();
+      const allowed = new Set(['general', 'sports', 'news', 'teachers', 'school-bullshit']);
+      if (allowed.has(saved)) setRoom(saved);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     setStatus('connecting');
     // Ensure the socket is (re)connecting
@@ -91,6 +100,7 @@ export default function Chat() {
   // Clear messages when room changes (history will refill from chat:init)
   useEffect(() => {
     setMessages([]);
+    try { localStorage.setItem('chatRoom', room); } catch {}
   }, [room]);
 
   useEffect(() => {

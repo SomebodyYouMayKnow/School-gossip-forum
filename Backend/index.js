@@ -185,6 +185,26 @@ try {
     console.warn('Socket.IO not installed. Live chat disabled. Run `npm i socket.io` in backend.');
 }
 
+// REST: recent chat messages
+app.get('/api/chat/recent', async (req, res) => {
+    try {
+        const roomRaw = (req.query.room || 'general').toString().toLowerCase();
+        const limit = Math.max(1, Math.min(10, parseInt(req.query.limit || '3', 10) || 3));
+        const allowed = new Set(['general', 'sports', 'news', 'teachers', 'school-bullshit']);
+        const room = allowed.has(roomRaw) ? roomRaw : 'general';
+        const client = mongo.getClient();
+        const db = client.db('school-gossip-forum');
+        const rows = await db.collection('ChatMessages')
+            .find({ room }, { projection: { user: 1, text: 1, ts: 1, admin: 1, room: 1 } })
+            .sort({ ts: -1 })
+            .limit(limit)
+            .toArray();
+        res.json({ room, messages: rows.map(r => ({ user: r.user, text: r.text, ts: r.ts, admin: !!r.admin, room: r.room })) });
+    } catch (e) {
+        res.status(500).json({ message: 'Failed to fetch recent chat', error: e?.message || String(e) });
+    }
+});
+
 // Start server
 server.listen(config.port, () => {
     console.log("App is listening on " + config.port);
