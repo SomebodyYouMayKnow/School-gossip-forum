@@ -15,6 +15,7 @@ export default function Polls() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [countsInput, setCountsInput] = useState({}); // key: `${pollId}:${idx}` -> number
+  const [ideasPost, setIdeasPost] = useState(null);
 
   const token = (() => {
     const userCookie = Cookies.get('user');
@@ -55,6 +56,16 @@ export default function Polls() {
   };
 
   useEffect(() => { fetchPolls(); }, []);
+
+  // Fetch or create the centralized Poll Ideas post for admins as well
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${BACKEND_ADDRESS}/api/polls/ideas`);
+        if (resp.data?.success && resp.data?.post) setIdeasPost(resp.data.post);
+      } catch {}
+    })();
+  }, []);
 
   const filtered = useMemo(() => {
     return polls.filter(p => (p.question || '').toLowerCase().includes(query.toLowerCase()));
@@ -120,6 +131,26 @@ export default function Polls() {
         <h1>Polls</h1>
         <a className="button-primary" href="/polls/new">Create Poll</a>
       </div>
+
+      {ideasPost && (
+        <div className="poll-ideas-banner" style={{
+          border: '1px solid #cde',
+          background: '#f3f8ff',
+          padding: 12,
+          borderRadius: 8,
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12
+        }}>
+          <div style={{fontSize: 22}}>💡</div>
+          <div style={{flex: 1}}>
+            <div style={{fontWeight: 600}}>Poll Ideas thread</div>
+            <div>Review and moderate community suggestions for new polls.</div>
+          </div>
+          <a className="button-primary" href={`/posts?postid=${ideasPost._id}`}>Open Ideas</a>
+        </div>
+      )}
 
       <div className="polls-toolbar">
         <input

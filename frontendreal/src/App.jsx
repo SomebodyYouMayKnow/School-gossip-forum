@@ -12,6 +12,7 @@ import PostDetail from './Pages/PostDetail';
 import EmailVerification from './Pages/EmailVerification';
 import Contact from './Pages/Contact';
 import PublicPolls from './Pages/Polls';
+import PollDetail from './Pages/PollDetail';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path='/verify-email' element={<EmailVerification />} />
         <Route path='/contact' element={<Contact />} />
         <Route path='/polls' element={<PublicPolls />} />
+        <Route path='/polls/:id' element={<PollDetail />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </>

@@ -4,6 +4,9 @@ const db = require('../db');
 const config = require('../config');
 const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 function getMongo() {
   return db.getClient().db('school-gossip-forum');
@@ -46,10 +49,35 @@ function shapePoll(poll) {
     active: !!poll.active,
     createdAt: poll.createdAt,
     createdBy: poll.createdBy || null,
+    description: poll.description || '',
+    images: Array.isArray(poll.images) ? poll.images : [],
     counts,
     totalVotes: votes.length,
   };
 }
+
+// Configure multer storage for poll images
+const pollsStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, '../uploads/polls');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `poll-${unique}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowed.includes(file.mimetype)) cb(null, true); else cb(new Error('Invalid file type'), false);
+};
+
+const upload = multer({ storage: pollsStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 5 } });
 
 // GET /api/polls - public list (active by default). Admin can request all=1 to list all
 router.get('/', async (req, res) => {
@@ -65,8 +93,62 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/polls/ideas - return a single centralized post for poll ideas (create if missing)
+router.get('/ideas', async (req, res) => {
+  try {
+    const posts = getMongo().collection('Posts');
+    // Try to find an existing ideas post
+    let doc = await posts.findOne({ postTitle: 'Poll Ideas', category: 'Polls' });
+    if (!doc) {
+      const now = new Date();
+      const insert = {
+        fullName: 'System',
+        creationDate: now,
+        comments: [],
+        email: 'system@local',
+        postTitle: 'Poll Ideas',
+        postContent: 'Share your ideas for future polls in the comments below!',
+        userID: 'system',
+        createdAt: now,
+        admin: true,
+        category: 'Polls',
+        upvotes: [],
+        downvotes: [],
+        images: []
+      };
+      const result = await posts.insertOne(insert);
+      doc = await posts.findOne({ _id: result.insertedId });
+    }
+    res.json({ success: true, post: { _id: doc._id, postTitle: doc.postTitle } });
+  } catch (e) {
+    console.error('Error in GET /api/polls/ideas:', e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// GET /api/polls/:id - fetch single poll (public if active; admin can fetch any)
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await authFromToken(req);
+    const id = req.params.id;
+    const col = getMongo().collection('Polls');
+    const poll = await col.findOne({ _id: new ObjectId(id) });
+    if (!poll) return res.status(404).json({ success: false, message: 'Not found' });
+    if (!poll.active) {
+      // Only admins can view inactive polls
+      const usersCol = getMongo().collection('Users');
+      const userDoc = user ? await usersCol.findOne({ _id: new ObjectId(user.userId) }) : null;
+      const isAdmin = !!(userDoc && (userDoc.admin === true || userDoc.admin === 'true'));
+      if (!isAdmin) return res.status(403).json({ success: false, message: 'Poll is inactive' });
+    }
+    res.json({ success: true, poll: shapePoll(poll) });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // POST /api/polls - create (admin)
-router.post('/', async (req, res) => {
+router.post('/', upload.array('images', 5), async (req, res) => {
   try {
     const user = await authFromToken(req);
     if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -77,12 +159,19 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
-    const { question, options, active = true } = req.body || {};
+    // Parse fields (options may arrive as JSON string from multipart form)
+    let { question, active = true, description = '' } = req.body || {};
+    let options = req.body?.options;
+    try {
+      if (typeof options === 'string') options = JSON.parse(options);
+    } catch {}
     if (!question || !Array.isArray(options) || options.filter(o => (o||'').trim()).length < 2) {
       return res.status(400).json({ success: false, message: 'Question and at least 2 options are required' });
     }
     const trimmed = options.map(o => (o||'').trim()).filter(Boolean);
     const col = getMongo().collection('Polls');
+    // Process uploaded images to relative paths under uploads/polls
+    const imagePaths = Array.isArray(req.files) ? req.files.map(f => `polls/${f.filename}`) : [];
     const doc = {
       question: question.trim(),
       options: trimmed,
@@ -90,6 +179,8 @@ router.post('/', async (req, res) => {
       createdAt: new Date(),
       createdBy: user.userId,
       votes: [],
+      description: String(description || ''),
+      images: imagePaths,
     };
     const result = await col.insertOne(doc);
     const saved = await col.findOne({ _id: result.insertedId });

@@ -15,6 +15,7 @@ export default function PublicPolls() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [ideasPost, setIdeasPost] = useState(null);
   const navigate = useNavigate();
 
   const token = (() => {
@@ -39,6 +40,18 @@ export default function PublicPolls() {
 
   useEffect(() => { fetchPolls(); }, []);
 
+  // Fetch or create the centralized Poll Ideas post
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${BACKEND_ADDRESS}/api/polls/ideas`);
+        if (resp.data?.success && resp.data?.post) setIdeasPost(resp.data.post);
+      } catch (e) {
+        // non-blocking; ignore errors
+      }
+    })();
+  }, []);
+
   const filtered = useMemo(() => polls.filter(p => (p.question || '').toLowerCase().includes(query.toLowerCase())), [polls, query]);
 
   const getCounts = (poll) => {
@@ -53,25 +66,8 @@ export default function PublicPolls() {
     return counts;
   };
 
-  const vote = async (pollId, optionIdx) => {
-    if (!isLoggedIn) {
-      alert('Please login to vote.');
-      navigate('/Login');
-      return;
-    }
-    try {
-      setError('');
-      const resp = await axios.post(`${BACKEND_ADDRESS}/api/polls/${pollId}/vote`, { option: optionIdx }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (resp.data?.success) {
-        setPolls(prev => prev.map(p => p._id === pollId ? resp.data.poll : p));
-      } else {
-        setError(resp.data?.message || 'Failed to vote');
-      }
-    } catch (e) {
-      setError(e.response?.data?.message || e.message || 'Failed to vote');
-    }
+  const openPoll = (pollId) => {
+    navigate(`/polls/${pollId}`);
   };
 
   return (
@@ -79,6 +75,29 @@ export default function PublicPolls() {
       <div className="polls-header">
         <h1>Community Polls</h1>
       </div>
+
+      {ideasPost && (
+        <div className="poll-ideas-banner" style={{
+          border: '1px solid #cde',
+          background: '#f3f8ff',
+          padding: 12,
+          borderRadius: 8,
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12
+        }}>
+          <div style={{fontSize: 22}}>💡</div>
+          <div style={{flex: 1}}>
+            <div style={{fontWeight: 600}}>Have an idea for a poll?</div>
+            <div>Comment your suggestions on the Poll Ideas thread.</div>
+          </div>
+          <button
+            className="button-primary"
+            onClick={() => navigate(`/posts?postid=${ideasPost._id}`)}
+          >Open Poll Ideas</button>
+        </div>
+      )}
 
       <div className="polls-toolbar">
         <input
@@ -103,9 +122,37 @@ export default function PublicPolls() {
           const total = counts.reduce((a,b) => a+b, 0);
           return (
             <div className="poll-card" key={poll._id}>
-              <div className="poll-card-head">
+              <div className="poll-card-head" style={{ cursor: 'pointer' }} onClick={() => openPoll(poll._id)}>
                 <h3 className="poll-question">{poll.question}</h3>
               </div>
+              {Array.isArray(poll.images) && poll.images.length > 0 && (
+                <div className="poll-thumbs" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {poll.images.slice(0, 4).map((imagePath, idx) => (
+                    <img
+                      key={idx}
+                      src={`${BACKEND_ADDRESS}/uploads/${imagePath}`}
+                      alt={`Poll thumbnail ${idx + 1}`}
+                      style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd' }}
+                    />
+                  ))}
+                  {poll.images.length > 4 && (
+                    <div style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 6,
+                      border: '1px solid #ddd',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#f7f7f7',
+                      color: '#555',
+                      fontSize: 14
+                    }}>
+                      +{poll.images.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="poll-meta">{poll.options.length} options · {total} total votes</div>
 
               <div className="poll-options">
@@ -121,12 +168,12 @@ export default function PublicPolls() {
                       <div className="option-progress">
                         <div className="bar" style={{ width: pct + '%' }} />
                       </div>
-                      <div className="option-actions">
-                        <button className="button-primary" onClick={() => vote(poll._id, idx)}>Vote</button>
-                      </div>
                     </div>
                   );
                 })}
+              </div>
+              <div className="poll-actions" style={{ marginTop: 12 }}>
+                <button className="button-primary" onClick={() => openPoll(poll._id)}>Open Poll</button>
               </div>
             </div>
           );

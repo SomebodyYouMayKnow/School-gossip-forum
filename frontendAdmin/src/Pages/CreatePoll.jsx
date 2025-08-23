@@ -10,6 +10,8 @@ export default function CreatePoll() {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [active, setActive] = useState(true);
+  const [description, setDescription] = useState('');
+  const [images, setImages] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,13 +43,19 @@ export default function CreatePoll() {
         setSubmitting(false);
         return;
       }
-      const resp = await axios.post(`${BACKEND_ADDRESS}/api/polls`, {
-        question: question.trim(),
-        options: trimmed,
-        active,
-      }, {
+      // Build multipart form
+      const form = new FormData();
+      form.append('question', question.trim());
+      form.append('options', JSON.stringify(trimmed));
+      form.append('active', String(!!active));
+      form.append('description', description);
+      if (images && images.length) {
+        for (const f of images) {
+          form.append('images', f);
+        }
+      }
+      const resp = await axios.post(`${BACKEND_ADDRESS}/api/polls`, form, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         }
       });
@@ -95,6 +103,28 @@ export default function CreatePoll() {
             ))}
           </div>
           <button type="button" className="button-primary" onClick={addOption}>Add Option</button>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Description</label>
+          <textarea
+            className="form-input"
+            rows={5}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Describe the poll in more detail"
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Images (up to 5)</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={e => setImages(Array.from(e.target.files || []))}
+            className="form-input"
+          />
         </div>
 
         <div className="form-group">
