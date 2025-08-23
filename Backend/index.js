@@ -47,6 +47,7 @@ app.use("/api/vote", require("./Routes/Vote.js"));
 app.use("/api/comment", require("./Routes/Comment.js"));
 app.use("/api/email-verification", require("./Routes/EmailVerification.js"));
 app.use("/api/migrate", require("./Routes/migrate.js"));
+app.use("/api/polls", require("./Routes/Polls.js"));
 
 // Start server
 app.listen(config.port, () => {

@@ -56,6 +56,15 @@
     transition: background 0.2s, color 0.2s, border 0.2s;
     outline: none;
 }
+.mini-btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #4f8cff;
+    background: #f3f7ff;
+    color: #4f8cff;
+    cursor: pointer;
+}
 .downvote-btn.upvoted, .downvote-btn:disabled {
     background: #ff4f4f;
     color: #fff;
@@ -590,4 +599,58 @@ body {
 .status-message p {
     margin: 0;
     color: #333;
+}
+
+/* Polls components */
+.polls-container {
+    max-width: 900px;
+    margin: 40px auto 0 auto;
+    padding: 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.04);
+}
+
+.polls-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.polls-list { display: flex; flex-direction: column; gap: 18px; }
+
+.poll-card {
+    background: #f8faff;
+    border: 1px solid #e3e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    transition: box-shadow 0.2s ease;
+}
+.poll-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.10); }
+
+.poll-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.poll-question { margin: 0 0 6px 0; font-size: 1.2rem; color: #1f2937; }
+.poll-meta { font-size: 0.95rem; color: #6b7280; margin-bottom: 10px; }
+
+.poll-options { display: flex; flex-direction: column; gap: 12px; }
+
+.option-block {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px 12px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.option-top { display: flex; align-items: center; justify-content: space-between; }
+.option-actions { display: flex; justify-content: flex-end; }
+
+.option-progress { background: #e5e7eb; height: 12px; border-radius: 999px; overflow: hidden; }
+.option-progress .bar { height: 100%; background: linear-gradient(90deg, #4f8cff 0%, #38b6ff 100%); border-radius: 999px; }
+
+@media (max-width: 640px) {
+  .option-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .option-actions { justify-content: stretch; }
 }

@@ -11,6 +11,8 @@ import ViewPosts from './Pages/viewposts';
 import PostDetail from './Pages/PostDetail';
 import EmailVerification from './Pages/EmailVerification';
 import Contact from './Pages/Contact';
+import Polls from './Pages/Polls';
+import CreatePoll from './Pages/CreatePoll';
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
         <Route path='/posts' element={<PostDetail />} />
         <Route path='/verify-email' element={<EmailVerification />} />
         <Route path='/contact' element={<Contact />} />
+        <Route path='/polls' element={<Polls />} />
+        <Route path='/polls/new' element={<CreatePoll />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </>
