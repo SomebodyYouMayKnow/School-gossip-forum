@@ -56,13 +56,23 @@ const Navbar = () => {
                             Contact
                         </Link>
                     </li>
+                    <li className="nav-item">
+                        <Link
+                            to="/Createpost"
+                            className="nav-links button"
+                            onClick={e => {
+                                if (!isSignedIn) {
+                                    e.preventDefault();
+                                    alert('You must be logged in to create a post. Please log in or create an account.');
+                                    navigate('/Login');
+                                }
+                            }}
+                        >
+                            Create Post
+                        </Link>
+                    </li>
                     {isSignedIn ? (
                         <>
-                            <li className="nav-item">
-                                <Link to="/Createpost" className="nav-links button">
-                                    Create Post
-                                </Link>
-                            </li>
                             <li className="nav-item">
                                 <Link to="#" className="nav-links button" onClick={e => { e.preventDefault(); handleSignOut(); }}>
                                     Sign Out
