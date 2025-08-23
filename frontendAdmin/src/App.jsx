@@ -13,6 +13,7 @@ import EmailVerification from './Pages/EmailVerification';
 import Contact from './Pages/Contact';
 import Polls from './Pages/Polls';
 import CreatePoll from './Pages/CreatePoll';
+import Chat from './Pages/Chat';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path='/contact' element={<Contact />} />
         <Route path='/polls' element={<Polls />} />
         <Route path='/polls/new' element={<CreatePoll />} />
+        <Route path='/chat' element={<Chat />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </>

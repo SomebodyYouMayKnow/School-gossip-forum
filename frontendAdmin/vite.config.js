@@ -5,6 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000, // Change this to your desired port
+    port: 3001, // Admin app on 3001
+    proxy: {
+      '/socket.io': {
+        target: 'http://localhost:5555',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 })
