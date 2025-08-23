@@ -224,14 +224,22 @@ const PostDetail = () => {
                 <div style={{ display: 'flex', gap: '12px', marginTop: '18px', alignItems: 'center' }}>
                     <button
                         className={`upvote-btn${voteState.userVote === 'upvote' ? ' upvoted' : ''}`}
-                        onClick={() => handleVote(voteState.userVote === 'upvote' ? 'remove' : 'upvote')}
-                        disabled={post.deleted || post.commentsDisabled}
+                        onClick={() => handleVote('upvote')}
+                        disabled={post.deleted}
                     >▲ Upvote {voteState.upvotes}</button>
                     <button
                         className={`downvote-btn${voteState.userVote === 'downvote' ? ' upvoted' : ''}`}
-                        onClick={() => handleVote(voteState.userVote === 'downvote' ? 'remove' : 'downvote')}
-                        disabled={post.deleted || post.commentsDisabled}
+                        onClick={() => handleVote('downvote')}
+                        disabled={post.deleted}
                     >▼ Downvote {voteState.downvotes}</button>
+                    {voteState.userVote && (
+                        <button
+                            className="upvote-btn"
+                            style={{ background: '#6c757d', color: '#fff' }}
+                            onClick={() => handleVote('remove')}
+                            title="Remove all my votes on this post"
+                        >Reset my votes</button>
+                    )}
                     {!isCurrentUserAdmin && userId && post.userID === userId && !post.deleted && (
                         <button
                             style={{
@@ -335,11 +343,11 @@ const PostDetail = () => {
                                                 postId,
                                                 commentId: comment._id,
                                                 userId,
-                                                action: liked ? 'unlike' : 'like'
+                                                action: 'like'
                                             });
                                             setComments(comments => comments.map(c =>
                                                 c._id === comment._id
-                                                    ? { ...c, likes: liked ? c.likes.filter(id => id !== userId) : [...(c.likes||[]), userId] }
+                                                    ? { ...c, likes: [...(c.likes||[]), userId] }
                                                     : c
                                             ));
                                         } catch {
@@ -347,6 +355,30 @@ const PostDetail = () => {
                                         }
                                     }}
                                 >👍 {comment.likes ? comment.likes.length : 0}</button>
+                                {liked && (
+                                    <button
+                                        className="upvote-btn"
+                                        style={{marginTop:6,marginRight:8,padding:'2px 10px',fontSize:'0.95em', background:'#6c757d', color:'#fff'}}
+                                        onClick={async () => {
+                                            if (!userId) { alert('You must be logged in to unlike.'); return; }
+                                            try {
+                                                await axios.post(`${BACKEND_ADDRESS}/api/comment/like`, {
+                                                    postId,
+                                                    commentId: comment._id,
+                                                    userId,
+                                                    action: 'unlike'
+                                                });
+                                                setComments(comments => comments.map(c =>
+                                                    c._id === comment._id
+                                                        ? { ...c, likes: (c.likes||[]).filter(id => id !== userId) }
+                                                        : c
+                                                ));
+                                            } catch {
+                                                alert('Failed to unlike comment.');
+                                            }
+                                        }}
+                                    >Unlike all</button>
+                                )}
                                 {userId && comment.userId === userId && (
                                     <button
                                         style={{

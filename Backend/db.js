@@ -147,14 +147,16 @@ module.exports = {
         return post && post.comments ? post.comments : [];
     },
 
-    // Like or unlike a comment
+    // Like or unlike a comment (allow multiple likes from same user by pushing duplicates)
     likeComment: async function (postId, commentId, userId, action) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
         let update;
         if (action === 'like') {
-            update = { $addToSet: { "comments.$.likes": userId } };
+            // Allow multiple likes per user by pushing userId (duplicates allowed)
+            update = { $push: { "comments.$.likes": userId } };
         } else if (action === 'unlike') {
+            // Remove all likes by this user on that comment
             update = { $pull: { "comments.$.likes": userId } };
         } else {
             throw new Error('Invalid like action');
@@ -601,23 +603,26 @@ module.exports = {
         }
     },
 
-    // Upvote, downvote, or remove vote for a post
+    // Upvote, downvote, or remove vote for a post (allow multiple votes per user)
     votePost: async function (postId, userId, action) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
         let update = {};
         if (action === 'upvote') {
+            // Allow multiple upvotes per user; still clear any downvotes by this user
             update = {
-                $addToSet: { upvotes: userId },
+                $push: { upvotes: userId },
                 $pull: { downvotes: userId }
             };
         } else if (action === 'downvote') {
+            // Allow multiple downvotes per user; still clear any upvotes by this user
             update = {
-                $addToSet: { downvotes: userId },
+                $push: { downvotes: userId },
                 $pull: { upvotes: userId }
             };
         } else if (action === 'remove') {
             update = {
+                // Remove all votes (up and down) by this user on this post
                 $pull: { upvotes: userId, downvotes: userId }
             };
         } else {

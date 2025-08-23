@@ -17,7 +17,8 @@ router.post('/', async (req, res) => {
         if (!post) {
             return res.status(404).json({ success: false, message: 'Post not found' });
         }
-        if (post.deleted || post.commentsDisabled) {
+        // Allow voting even if comments are disabled; only block deleted posts
+        if (post.deleted) {
             return res.status(403).json({ success: false, message: 'Voting is disabled for this post.' });
         }
         const result = await db.votePost(postId, userId, action);
