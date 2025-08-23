@@ -1,15 +1,8 @@
 const db = require("../db");
 const Utils = require("../Utils");
 const emailService = require("../emailService");
-const { registerLimiter } = require('../middleware/rateLimiter');
-const { validateRegistration } = require('../middleware/validation');
-const { registrationSpamDetection } = require('../middleware/spamDetection');
 
-// Apply middleware
-const express = require('express');
-const router = express.Router();
-
-router.post('/', registerLimiter, validateRegistration, registrationSpamDetection, async function (req, res, next) {
+module.exports = async function (req, res, next) {
     const fullNameRegex = /^[a-zA-Z0-9_]+$/;
     const emailRegex = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
     const passwordRegex = /^[A-Za-z0-9!@#$%^&*()_]{1,20}$/;
@@ -117,6 +110,4 @@ router.post('/', registerLimiter, validateRegistration, registrationSpamDetectio
         console.error('Registration error:', error);
         Utils.sendError(res, "Registration failed. Please try again.");
     }
-});
-
-module.exports = router;
+};

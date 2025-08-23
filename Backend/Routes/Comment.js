@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { commentLimiter } = require('../middleware/rateLimiter');
-const { validateComment, validateUserAction } = require('../middleware/validation');
-const { spamDetectionMiddleware } = require('../middleware/spamDetection');
+
 
 // ...existing code...
 
@@ -47,7 +45,7 @@ const { ObjectId } = require('mongodb');
 
 const userSettings = require('../userSettings.js');
 // POST /api/comment (add comment or reply)
-router.post('/', commentLimiter, validateComment, spamDetectionMiddleware, async (req, res) => {
+router.post('/', async (req, res) => {
     const { postId, userId, fullName, text, parentCommentId } = req.body;
     if (!postId || !userId || !text) {
         return res.status(400).json({ success: false, message: 'Missing postId, userId, or text' });
@@ -99,7 +97,7 @@ router.post('/like', async (req, res) => {
 });
 
 // POST /api/comment/reply (reply to a comment)
-router.post('/reply', commentLimiter, validateComment, spamDetectionMiddleware, async (req, res) => {
+router.post('/reply', async (req, res) => {
     const { postId, parentCommentId, userId, fullName, text } = req.body;
     if (!postId || !parentCommentId || !userId || !text) {
         return res.status(400).json({ success: false, message: 'Missing postId, parentCommentId, userId, or text' });

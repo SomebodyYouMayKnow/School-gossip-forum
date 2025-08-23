@@ -8,9 +8,6 @@ const jwt = require('jsonwebtoken');
 const config = require('../config.js');
 const Utils = require('../Utils.js');
 const userSettings = require('../userSettings.js'); // Import user settings
-const { postLimiter } = require('../middleware/rateLimiter');
-const { validatePost, validateFileUpload, validateUserAction } = require('../middleware/validation');
-const { spamDetectionMiddleware } = require('../middleware/spamDetection');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -54,7 +51,7 @@ const upload = multer({
     }
 });
 
-router.post('/', postLimiter, validatePost, validateFileUpload, spamDetectionMiddleware, upload.array('images', 5), async (req, res) => {
+router.post('/', upload.array('images', 5), async (req, res) => {
     try {
         const cookieData = JSON.parse(req.body.userCookie);
         const userName = cookieData.fullName;

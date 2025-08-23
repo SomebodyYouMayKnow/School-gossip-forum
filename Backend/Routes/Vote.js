@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db.js');
+const db = require('../db');
 const { ObjectId } = require('mongodb');
-const { voteLimiter } = require('../middleware/rateLimiter');
-const { validateUserAction } = require('../middleware/validation');
 
 // POST /api/vote
-router.post('/', voteLimiter, validateUserAction, async (req, res) => {
+router.post('/', async (req, res) => {
     const { postId, userId, action } = req.body;
     if (!postId || !userId || !['upvote','downvote','remove'].includes(action)) {
         return res.status(400).json({ success: false, message: 'Missing or invalid postId, userId, or action' });
