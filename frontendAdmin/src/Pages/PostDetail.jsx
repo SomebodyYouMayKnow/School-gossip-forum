@@ -296,7 +296,7 @@ const PostDetail = () => {
                     {comments.map(comment => {
                         const liked = comment.likes && userId && comment.likes.includes(userId);
                         const replies = comment.replies || [];
-                        const state = replyState[comment._id] || { show: false, text: '', loading: false };
+                        const state = replyState[comment._id] || { show: false, text: '', loading: false, showReplies: false };
                         // Check if admin (assume comment.admin or comment.userId is admin)
                         const isAdmin = comment.admin || comment.isAdmin;
                         return (
@@ -467,84 +467,101 @@ const PostDetail = () => {
                                 )}
                                 {replies.length > 0 && (
                                     <div style={{marginLeft:24,marginTop:8}}>
-                                        {replies.map(reply => {
-                                            const isAdminReply = reply.admin || reply.isAdmin;
-                                            return (
-                                                <div className="comment" key={reply._id} style={{background:'#f5f7fa'}}>
-                                                    <div className="comment-meta" style={{ display: 'flex', alignItems: 'center' }}>
-                                                        <b style={isAdminReply ? { color: 'red', fontWeight: 'bold' } : {}}>
-                                                            {reply.fullName || reply.username || 'Anonymous'}
-                                                            {isAdminReply && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
-                                                        </b>
-                                                        <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{reply.createdAt ? new Date(reply.createdAt).toLocaleString() : ''}</span>
-                                                        {isCurrentUserAdmin && (
-                                                            <span
-                                                                title="Delete reply"
-                                                                style={{marginLeft:12, color:'#d11a2a', cursor:'pointer'}}
-                                                                onClick={async (e) => {
-                                                                    e.stopPropagation();
-                                                                    if (!window.confirm('Are you sure you want to delete this reply?')) return;
-                                                                    try {
-                                                                        const userCookie = Cookies.get('user');
-                                                                        const userData = userCookie ? JSON.parse(userCookie) : {};
-                                                                        const adminId = userData.userId || userData._id;
-                                                                        await axios.delete(`${BACKEND_ADDRESS}/api/comment`, {
-                                                                            data: { postId, commentId: reply._id, adminId }
-                                                                        });
-                                                                        setComments(comments => comments.map(c =>
-                                                                            c._id === comment._id
-                                                                                ? { ...c, replies: c.replies.filter(r => r._id !== reply._id) }
-                                                                                : c
-                                                                        ));
-                                                                    } catch (err) {
-                                                                        alert('Failed to delete reply.');
-                                                                    }
-                                                                }}
-                                                            >
-                                                                {/* Trash SVG icon */}
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="comment-text">{reply.text}</div>
-                                                    {userId && reply.userId === userId && (
-                                                        <button
-                                                            style={{
-                                                                marginTop: 6,
-                                                                marginRight: 8,
-                                                                padding: '2px 10px',
-                                                                fontSize: '0.95em',
-                                                                background: '#d11a2a',
-                                                                color: '#fff',
-                                                                border: 'none',
-                                                                borderRadius: '4px',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                            onClick={async () => {
-                                                                if (!confirm('Are you sure you want to delete this reply?')) return;
-                                                                try {
-                                                                    await axios.delete(`${BACKEND_ADDRESS}/api/comment/user`, {
-                                                                        data: { postId, commentId: reply._id, userId }
-                                                                    });
-                                                                    // Remove the reply from local state
-                                                                    setComments(comments => comments.map(c =>
-                                                                        c._id === comment._id
-                                                                            ? { ...c, replies: c.replies.filter(r => r._id !== reply._id) }
-                                                                            : c
-                                                                    ));
-                                                                    alert('Reply deleted successfully');
-                                                                } catch (err) {
-                                                                    const errorMessage = err.response?.data?.message || 'Failed to delete reply';
-                                                                    alert(errorMessage);
-                                                                }
-                                                            }}
-                                                        >
-                                                            🗑️ Delete
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                        {replies.length > 2 && !state.showReplies ? (
+                                            <button
+                                                className="upvote-btn"
+                                                style={{padding:'2px 10px',fontSize:'0.95em'}}
+                                                onClick={() => setReplyState(s => ({ ...s, [comment._id]: { ...state, showReplies: true } }))}
+                                            >See {replies.length} replies ▾</button>
+                                        ) : (
+                                            <>
+                                                {replies.length > 2 && (
+                                                    <button
+                                                        className="upvote-btn"
+                                                        style={{padding:'2px 10px',fontSize:'0.95em', marginBottom:8}}
+                                                        onClick={() => setReplyState(s => ({ ...s, [comment._id]: { ...state, showReplies: false } }))}
+                                                    >Hide replies ▴</button>
+                                                )}
+                                                {replies.map(reply => {
+                                                    const isAdminReply = reply.admin || reply.isAdmin;
+                                                    return (
+                                                        <div className="comment" key={reply._id} style={{background:'#f5f7fa'}}>
+                                                            <div className="comment-meta" style={{ display: 'flex', alignItems: 'center' }}>
+                                                                <b style={isAdminReply ? { color: 'red', fontWeight: 'bold' } : {}}>
+                                                                    {reply.fullName || reply.username || 'Anonymous'}
+                                                                    {isAdminReply && <span style={{marginLeft:6, color:'red', fontWeight:'bold', fontSize:'0.95em'}}>(admin)</span>}
+                                                                </b>
+                                                                <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{reply.createdAt ? new Date(reply.createdAt).toLocaleString() : ''}</span>
+                                                                {isCurrentUserAdmin && (
+                                                                    <span
+                                                                        title="Delete reply"
+                                                                        style={{marginLeft:12, color:'#d11a2a', cursor:'pointer'}}
+                                                                        onClick={async (e) => {
+                                                                            e.stopPropagation();
+                                                                            if (!window.confirm('Are you sure you want to delete this reply?')) return;
+                                                                            try {
+                                                                                const userCookie = Cookies.get('user');
+                                                                                const userData = userCookie ? JSON.parse(userCookie) : {};
+                                                                                const adminId = userData.userId || userData._id;
+                                                                                await axios.delete(`${BACKEND_ADDRESS}/api/comment`, {
+                                                                                    data: { postId, commentId: reply._id, adminId }
+                                                                                });
+                                                                                setComments(comments => comments.map(c =>
+                                                                                    c._id === comment._id
+                                                                                        ? { ...c, replies: c.replies.filter(r => r._id !== reply._id) }
+                                                                                        : c
+                                                                                ));
+                                                                            } catch (err) {
+                                                                                alert('Failed to delete reply.');
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {/* Trash SVG icon */}
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="comment-text">{reply.text}</div>
+                                                            {userId && reply.userId === userId && (
+                                                                <button
+                                                                    style={{
+                                                                        marginTop: 6,
+                                                                        marginRight: 8,
+                                                                        padding: '2px 10px',
+                                                                        fontSize: '0.95em',
+                                                                        background: '#d11a2a',
+                                                                        color: '#fff',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                    onClick={async () => {
+                                                                        if (!confirm('Are you sure you want to delete this reply?')) return;
+                                                                        try {
+                                                                            await axios.delete(`${BACKEND_ADDRESS}/api/comment/user`, {
+                                                                                data: { postId, commentId: reply._id, userId }
+                                                                            });
+                                                                            // Remove the reply from local state
+                                                                            setComments(comments => comments.map(c =>
+                                                                                c._id === comment._id
+                                                                                    ? { ...c, replies: c.replies.filter(r => r._id !== reply._id) }
+                                                                                    : c
+                                                                            ));
+                                                                            alert('Reply deleted successfully');
+                                                                        } catch (err) {
+                                                                            const errorMessage = err.response?.data?.message || 'Failed to delete reply';
+                                                                            alert(errorMessage);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    🗑️ Delete
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>

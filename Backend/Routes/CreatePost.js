@@ -98,7 +98,7 @@ router.post('/', upload.array('images', 5), async (req, res) => {
                 }
                 const downtime = new Date(Date.now() - userSettings.timeBetweenPosts); 
                 if (user.lastPost && new Date(user.lastPost) > downtime) {
-                    Utils.sendError(res, 'You cannot create a new post within 5 hours of your last post.');
+                    Utils.sendError(res, 'You cannot create a new post within 5 minutes of your last post.');
                     db.deletePost(newPost._id);
                     return;
                 } else {
