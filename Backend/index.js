@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const http = require('http');
+const mongo = require('./db.js');
 const app = express();
 
 // Middleware
@@ -66,27 +67,43 @@ try {
         }
     });
 
-    const recentMessages = [];
-    const MAX_BUFFER = 50;
-
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         console.log('[socket.io] client connected', socket.id);
-        // Send recent buffer to the newly connected client
-        socket.emit('chat:init', recentMessages);
+        // Load last 50 messages from MongoDB and send to the newly connected client
+        try {
+            const client = mongo.getClient();
+            const db = client.db('school-gossip-forum');
+            const rows = await db.collection('ChatMessages')
+                .find({})
+                .sort({ ts: -1 })
+                .limit(50)
+                .toArray();
+            const history = rows.reverse().map(r => ({ id: r._id?.toString?.() || r.id, user: r.user, text: r.text, ts: r.ts }));
+            socket.emit('chat:init', history);
+        } catch (e) {
+            console.warn('Failed to load chat history:', e?.message || e);
+            socket.emit('chat:init', []);
+        }
         socket.emit('chat:message', { id: 'server-ping', user: 'System', text: 'Welcome! Socket connected.', ts: new Date().toISOString() });
 
-        socket.on('chat:message', (msg) => {
+        socket.on('chat:message', async (msg) => {
             const safe = {
-                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
                 text: typeof msg?.text === 'string' ? msg.text.slice(0, 1000) : '',
                 user: typeof msg?.user === 'string' ? msg.user.slice(0, 64) : 'Anonymous',
                 ts: new Date().toISOString(),
             };
             if (!safe.text) return;
             console.log('[socket.io] message from', socket.id, safe.user + ':', safe.text);
-            recentMessages.push(safe);
-            if (recentMessages.length > MAX_BUFFER) recentMessages.shift();
-            io.emit('chat:message', safe);
+            try {
+                const client = mongo.getClient();
+                const db = client.db('school-gossip-forum');
+                const { insertedId } = await db.collection('ChatMessages').insertOne(safe);
+                io.emit('chat:message', { id: insertedId.toString(), ...safe });
+            } catch (e) {
+                console.warn('Failed to persist chat message:', e?.message || e);
+                // Fall back to emitting without persistence
+                io.emit('chat:message', { id: Date.now().toString(36), ...safe });
+            }
         });
 
         socket.on('disconnect', (reason) => {
