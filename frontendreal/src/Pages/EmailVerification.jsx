@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './Pages.css';
 import { BACKEND_ADDRESS } from '../config/api';
@@ -10,27 +10,34 @@ function EmailVerification() {
     const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
     const [message, setMessage] = useState('Verifying your email...');
     const [email, setEmail] = useState('');
-    const hasVerified = useState(false);
+    const hasVerifiedRef = useRef(false);
+    const redirectTimeoutRef = useRef(null);
 
-    useState(() => {
+    useEffect(() => {
         const token = searchParams.get('token');
-        
+
         if (!token) {
             setStatus('error');
             setMessage('Invalid verification link. No token provided.');
             return;
         }
 
-        // Prevent multiple verification attempts
-        if (!hasVerified) {
-            hasVerified(true);
+        // Prevent multiple verification attempts (handles React Strict Mode)
+        if (!hasVerifiedRef.current) {
+            hasVerifiedRef.current = true;
             verifyEmail(token);
         }
+
+        return () => {
+            if (redirectTimeoutRef.current) {
+                clearTimeout(redirectTimeoutRef.current);
+            }
+        };
     }, [searchParams]);
 
     const verifyEmail = async (token) => {
         try {
-            const response = await axios.get(`${BACKEND_ADDRESS}/api/verify-email?token=${token}`);
+            const response = await axios.get(`${BACKEND_ADDRESS}/api/email-verification/verify/${token}`);
 
             const data = response.data;
 
@@ -40,7 +47,7 @@ function EmailVerification() {
                 setEmail(data.user?.email || '');
                 
                 // Redirect to login after 3 seconds
-                setTimeout(() => {
+                redirectTimeoutRef.current = setTimeout(() => {
                     navigate('/Login');
                 }, 3000);
             } else {
@@ -61,9 +68,9 @@ function EmailVerification() {
         }
 
         try {
-            const response = await axios.post(`${BACKEND_ADDRESS}/api/resend-verification`, { email: email });
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/email-verification/resend`, { email: email });
 
-            const data = await response.json();
+            const data = response.data;
             
             if (data.success) {
                 alert('Verification email sent! Please check your inbox.');
@@ -95,12 +102,6 @@ function EmailVerification() {
                         <p>{message}</p>
                         {email && <p className="email-info">Email: <strong>{email}</strong></p>}
                         <p className="redirect-info">Redirecting to login in 3 seconds...</p>
-                        <button 
-                            onClick={() => navigate('/Login')} 
-                            className="btn btn-primary"
-                        >
-                            Go to Login Now
-                        </button>
                     </div>
                 )}
 
@@ -145,7 +146,7 @@ function EmailVerification() {
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .verification-status {
                     text-align: center;
                     padding: 20px;
