@@ -11,19 +11,49 @@ const app = express();
 
 // Middleware
 app.use(logger("dev"));
+// CORS configuration
+// - Hardcoded whitelist of allowed frontend origins (adjust as needed)
+// - Permits localhost/127.0.0.1 (any port) by default for development
+// - Allows non-browser requests (no Origin header)
+const hardcodedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+];
+const allowedOrigins = hardcodedOrigins;
+
+function isLocalhost(origin) {
+  try {
+    const u = new URL(origin);
+    return (u.protocol === 'http:' || u.protocol === 'https:') &&
+      (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
+  } catch (e) {
+    return false;
+  }
+}
+
 app.use(cors({
-    origin: function (origin, callback) {
-        const allowedOrigins = config.corsOrigins;
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        } else {
-            return callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+  origin: function (origin, callback) {
+    // Allow server-to-server or tools without Origin
+    if (!origin) return callback(null, true);
+
+    // Allow explicit wildcard via env/config
+    if (allowedOrigins.includes('*')) return callback(null, true);
+
+    // Allow any localhost/127.0.0.1 for dev convenience
+    if (isLocalhost(origin)) return callback(null, true);
+
+    // Strict match on configured whitelist
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(bodyParser.json());
