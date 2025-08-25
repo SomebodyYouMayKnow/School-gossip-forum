@@ -51,6 +51,7 @@ app.use("/api/comment", require("./Routes/Comment.js"));
 app.use("/api/email-verification", require("./Routes/EmailVerification.js"));
 app.use("/api/migrate", require("./Routes/migrate.js"));
 app.use("/api/polls", require("./Routes/Polls.js"));
+app.use("/api/password-reset", require("./Routes/PasswordReset.js"));
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);

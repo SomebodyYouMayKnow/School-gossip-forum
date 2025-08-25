@@ -93,6 +93,11 @@ const Login = () => {
                     </button>
                 </div>
                 <div className="col-12">
+                    <a href="/reset-password" className="link-account">
+                        Forgot password?
+                    </a>
+                </div>
+                <div className="col-12">
                     <a href="/Register" className="link-account">
                         Don't have an account? Register here
                     </a>

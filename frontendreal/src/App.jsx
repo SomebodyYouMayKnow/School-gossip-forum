@@ -14,6 +14,7 @@ import Contact from './Pages/Contact';
 import PublicPolls from './Pages/Polls';
 import PollDetail from './Pages/PollDetail';
 import Chat from './Pages/Chat';
+import ResetPassword from './Pages/ResetPassword';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path='/viewposts' element={<ViewPosts />} />
         <Route path='/posts' element={<PostDetail />} />
         <Route path='/verify-email' element={<EmailVerification />} />
+        <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/contact' element={<Contact />} />
         <Route path='/polls' element={<PublicPolls />} />
         <Route path='/polls/:id' element={<PollDetail />} />
