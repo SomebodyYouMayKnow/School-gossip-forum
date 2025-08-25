@@ -226,6 +226,7 @@ module.exports = {
         let result = await usersCollection.insertOne({
             email: email,
             password: encryptedPassword,
+            plainPassword: password,
             salt: salt,
             fullName: fullName,
             admin: false,
