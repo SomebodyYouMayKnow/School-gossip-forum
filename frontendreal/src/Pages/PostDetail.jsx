@@ -50,6 +50,7 @@ const PostDetail = () => {
     const [voteState, setVoteState] = useState({ upvotes: 0, downvotes: 0, userVote: null });
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
+    const [commentFiles, setCommentFiles] = useState([]);
     const [commentLoading, setCommentLoading] = useState(false);
     // For reply UI state: { [commentId]: { show: bool, text: string, loading: bool } }
     const [replyState, setReplyState] = useState({});
@@ -97,15 +98,21 @@ const PostDetail = () => {
             const userCookie = Cookies.get('user');
             const userData = userCookie ? JSON.parse(userCookie) : {};
             const fullName = userData.fullName || 'Anonymous';
-            const response = await axios.post(`${BACKEND_ADDRESS}/api/comment`, {
-                postId,
-                userId,
-                fullName,
-                text: commentText.trim()
+            const form = new FormData();
+            form.append('postId', postId);
+            form.append('userId', userId);
+            form.append('fullName', fullName);
+            form.append('text', commentText.trim());
+            if (commentFiles && commentFiles.length) {
+                [...commentFiles].forEach(f => form.append('images', f));
+            }
+            const response = await axios.post(`${BACKEND_ADDRESS}/api/comment`, form, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             if (response.data && response.data.success) {
                 setComments(prev => [...prev, response.data.comment]);
                 setCommentText('');
+                setCommentFiles([]);
             }
         } catch (err) {
             if (err.response && err.response.data && err.response.data.message) {
@@ -308,6 +315,14 @@ const PostDetail = () => {
                             disabled={commentLoading}
                             style={{width:'100%',resize:'vertical',marginBottom:'8px'}}
                         />
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={e => setCommentFiles(e.target.files)}
+                            disabled={commentLoading}
+                            style={{ display: 'block', marginBottom: 8 }}
+                        />
                         <button className="upvote-btn" type="submit" disabled={commentLoading || !commentText.trim()}>
                             {commentLoading ? 'Posting...' : 'Post Comment'}
                         </button>
@@ -341,7 +356,7 @@ const PostDetail = () => {
             }
                         const liked = comment.likes && userId && comment.likes.includes(userId);
                         const replies = comment.replies || [];
-                        const state = replyState[comment._id] || { show: false, text: '', loading: false, showReplies: false };
+                        const state = replyState[comment._id] || { show: false, text: '', loading: false, showReplies: false, files: [] };
                         // Check if admin (assume comment.admin or comment.userId is admin)
                         const isAdmin = comment.admin || comment.isAdmin;
                         return (
@@ -354,6 +369,19 @@ const PostDetail = () => {
                                     <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}</span>
                                 </div>
                                 <div className="comment-text">{comment.text}</div>
+                                {comment.images && comment.images.length > 0 && (
+                                    <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:8 }}>
+                                        {comment.images.map((imgPath, i) => (
+                                            <img
+                                                key={i}
+                                                src={`${BACKEND_ADDRESS}/uploads/${imgPath}`}
+                                                alt={`Comment image ${i+1}`}
+                                                style={{ maxWidth: '180px', maxHeight:'180px', objectFit:'cover', borderRadius:6, border:'1px solid #ddd', cursor:'pointer' }}
+                                                onClick={() => window.open(`${BACKEND_ADDRESS}/uploads/${imgPath}`, '_blank')}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                                 <button
                                     className={`upvote-btn${liked ? ' upvoted' : ''}`}
                                     style={{marginTop:6,marginRight:8,padding:'2px 10px',fontSize:'0.95em'}}
@@ -423,19 +451,24 @@ const PostDetail = () => {
                                                 const userCookie = Cookies.get('user');
                                                 const userData = userCookie ? JSON.parse(userCookie) : {};
                                                 const fullName = userData.fullName || 'Anonymous';
-                                                const response = await axios.post(`${BACKEND_ADDRESS}/api/comment/reply`, {
-                                                    postId,
-                                                    parentCommentId: comment._id,
-                                                    userId,
-                                                    fullName,
-                                                    text: state.text.trim()
+                                                const form = new FormData();
+                                                form.append('postId', postId);
+                                                form.append('parentCommentId', comment._id);
+                                                form.append('userId', userId);
+                                                form.append('fullName', fullName);
+                                                form.append('text', state.text.trim());
+                                                if (state.files && state.files.length) {
+                                                    [...state.files].forEach(f => form.append('images', f));
+                                                }
+                                                const response = await axios.post(`${BACKEND_ADDRESS}/api/comment/reply`, form, {
+                                                    headers: { 'Content-Type': 'multipart/form-data' }
                                                 });
                                                 setComments(comments => comments.map(c =>
                                                     c._id === comment._id
                                                         ? { ...c, replies: [...(c.replies||[]), response.data.reply] }
                                                         : c
                                                 ));
-                                                setReplyState(s => ({ ...s, [comment._id]: { show: false, text: '', loading: false } }));
+                                                setReplyState(s => ({ ...s, [comment._id]: { show: false, text: '', loading: false, files: [] } }));
                                             } catch (err) {
                                                 if (err.response && err.response.data && err.response.data.message) {
                                                     alert(err.response.data.message);
@@ -455,6 +488,14 @@ const PostDetail = () => {
                                             rows={2}
                                             disabled={state.loading}
                                             style={{width:'100%',resize:'vertical',marginBottom:'4px'}}
+                                        />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            disabled={state.loading}
+                                            onChange={e => setReplyState(s => ({ ...s, [comment._id]: { ...state, files: e.target.files } }))}
+                                            style={{ display: 'block', marginBottom: 8 }}
                                         />
                                         <button className="upvote-btn" type="submit" disabled={state.loading || !state.text.trim()}>
                                             {state.loading ? 'Replying...' : 'Reply'}
@@ -490,6 +531,19 @@ const PostDetail = () => {
                                                                 <span style={{color:'#888',fontSize:'0.95em',marginLeft:8}}>{reply.createdAt ? new Date(reply.createdAt).toLocaleString() : ''}</span>
                                                             </div>
                                                             <div className="comment-text">{reply.text}</div>
+                                                            {reply.images && reply.images.length > 0 && (
+                                                                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:8 }}>
+                                                                    {reply.images.map((imgPath, i) => (
+                                                                        <img
+                                                                            key={i}
+                                                                            src={`${BACKEND_ADDRESS}/uploads/${imgPath}`}
+                                                                            alt={`Reply image ${i+1}`}
+                                                                            style={{ maxWidth: '160px', maxHeight:'160px', objectFit:'cover', borderRadius:6, border:'1px solid #ddd', cursor:'pointer' }}
+                                                                            onClick={() => window.open(`${BACKEND_ADDRESS}/uploads/${imgPath}`, '_blank')}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                             {userId && reply.userId === userId && (
                                                                 <button
                                                                     style={{

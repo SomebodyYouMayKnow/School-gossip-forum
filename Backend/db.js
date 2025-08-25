@@ -98,7 +98,7 @@ module.exports = {
     },
 
     // Add a comment to a post
-    addComment: async function (postId, userId, fullName, commentText, parentCommentId = null) {
+    addComment: async function (postId, userId, fullName, commentText, parentCommentId = null, images = []) {
         const db = mongoClient.db('school-gossip-forum');
         const postsCollection = db.collection('Posts');
         // Always fetch the user's fullName and admin status from the Users collection
@@ -118,7 +118,8 @@ module.exports = {
             likes: [],
             replies: [],
             parent: parentCommentId || null,
-            admin: isAdmin
+            admin: isAdmin,
+            images: Array.isArray(images) ? images : []
         };
         if (!parentCommentId) {
             await postsCollection.updateOne(
@@ -169,9 +170,9 @@ module.exports = {
     },
 
     // Reply to a comment (threaded, only 1 level deep)
-    replyToComment: async function (postId, parentCommentId, userId, fullName, replyText) {
+    replyToComment: async function (postId, parentCommentId, userId, fullName, replyText, images = []) {
         // Reuse addComment with parentCommentId
-        return await this.addComment(postId, userId, fullName, replyText, parentCommentId);
+        return await this.addComment(postId, userId, fullName, replyText, parentCommentId, images);
     },
     listUsers: async function (query) {
         const db = mongoClient.db('school-gossip-forum');

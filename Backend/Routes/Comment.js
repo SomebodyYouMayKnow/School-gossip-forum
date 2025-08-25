@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 
 // ...existing code...
@@ -44,8 +47,37 @@ const db = require('../db');
 const { ObjectId } = require('mongodb');
 
 const userSettings = require('../userSettings.js');
-// POST /api/comment (add comment or reply)
-router.post('/', async (req, res) => {
+// Multer config for comment image uploads
+const commentStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const postId = req.body.postId || 'unassigned';
+        const safePost = String(postId).replace(/[^a-zA-Z0-9_-]/g, '');
+        const dest = path.join(__dirname, '..', 'uploads', 'comments', safePost);
+        try {
+            fs.mkdirSync(dest, { recursive: true });
+        } catch {}
+        cb(null, dest);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'comment-' + uniqueSuffix + ext);
+    }
+});
+const imageFileFilter = (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+};
+const upload = multer({
+    storage: commentStorage,
+    fileFilter: imageFileFilter,
+    limits: { fileSize: 5 * 1024 * 1024, files: 3 }
+});
+
+// POST /api/comment (add comment or reply) with optional images
+router.post('/', upload.array('images', 3), async (req, res) => {
+    // Support both JSON and multipart
     const { postId, userId, fullName, text, parentCommentId } = req.body;
     if (!postId || !userId || !text) {
         return res.status(400).json({ success: false, message: 'Missing postId, userId, or text' });
@@ -72,8 +104,14 @@ router.post('/', async (req, res) => {
                 return res.status(429).json({ success: false, message: `Please wait ${waitSec} seconds before commenting again.` });
             }
         }
+        // Process uploaded images if any
+        let images = [];
+        if (req.files && req.files.length) {
+            const safePost = String(postId).replace(/[^a-zA-Z0-9_-]/g, '');
+            images = req.files.map(f => `comments/${safePost}/${f.filename}`);
+        }
         // Add comment
-        const comment = await db.addComment(postId, userId, fullName, text, parentCommentId);
+        const comment = await db.addComment(postId, userId, fullName, text, parentCommentId, images);
         // Update lastComment
         await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
         res.status(200).json({ success: true, comment });
@@ -97,7 +135,7 @@ router.post('/like', async (req, res) => {
 });
 
 // POST /api/comment/reply (reply to a comment)
-router.post('/reply', async (req, res) => {
+router.post('/reply', upload.array('images', 3), async (req, res) => {
     const { postId, parentCommentId, userId, fullName, text } = req.body;
     if (!postId || !parentCommentId || !userId || !text) {
         return res.status(400).json({ success: false, message: 'Missing postId, parentCommentId, userId, or text' });
@@ -106,7 +144,7 @@ router.post('/reply', async (req, res) => {
         // Enforce timeBetweenComments for replies too
         const dbClient = db.getClient();
         const usersCollection = dbClient.db('school-gossip-forum').collection('Users');
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
         if (user && user.lastComment && !(user.premium || user.admin)) {
             const now = Date.now();
             const last = new Date(user.lastComment).getTime();
@@ -115,10 +153,16 @@ router.post('/reply', async (req, res) => {
                 return res.status(429).json({ success: false, message: `Please wait ${waitSec} seconds before commenting again.` });
             }
         }
+        // Process uploaded images if any
+        let images = [];
+        if (req.files && req.files.length) {
+            const safePost = String(postId).replace(/[^a-zA-Z0-9_-]/g, '');
+            images = req.files.map(f => `comments/${safePost}/${f.filename}`);
+        }
         // Add reply
-        const reply = await db.replyToComment(postId, parentCommentId, userId, fullName, text);
+        const reply = await db.replyToComment(postId, parentCommentId, userId, fullName, text, images);
         // Update lastComment
-    await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
+        await usersCollection.updateOne({ _id: new ObjectId(userId) }, { $set: { lastComment: new Date() } });
         res.status(200).json({ success: true, reply });
     } catch (error) {
         console.error('Error in /api/comment/reply:', error);
