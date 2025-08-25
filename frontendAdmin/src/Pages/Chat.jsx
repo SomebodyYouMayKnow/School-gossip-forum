@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { io } from 'socket.io-client';
+import { BACKEND_ADDRESS } from '../config/api';
 import './Pages.css';
 
 function getUserDisplay() {
@@ -26,8 +27,8 @@ export default function Chat() {
   const [cooldownLeft, setCooldownLeft] = useState(0);
   const [room, setRoom] = useState('general');
 
-  // Connect directly to backend Socket.IO to avoid proxy issues
-  const socket = useMemo(() => io('http://localhost:5555', {
+  // Connect directly to backend Socket.IO using configured backend address
+  const socket = useMemo(() => io(BACKEND_ADDRESS, {
     withCredentials: true,
     transports: ['websocket', 'polling'],
     path: '/socket.io'

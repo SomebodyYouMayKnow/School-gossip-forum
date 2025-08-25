@@ -13,7 +13,7 @@ const app = express();
 app.use(logger("dev"));
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
+        const allowedOrigins = config.corsOrigins;
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
@@ -62,7 +62,7 @@ try {
     const { Server } = require('socket.io');
     io = new Server(server, {
         cors: {
-            origin: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
+            origin: config.corsOrigins,
             methods: ['GET', 'POST'],
             credentials: true
         }

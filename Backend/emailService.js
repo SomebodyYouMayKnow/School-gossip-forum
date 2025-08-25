@@ -21,7 +21,7 @@ class EmailService {
 
     // Send verification email
     async sendVerificationEmail(userEmail, userName, verificationToken) {
-        const verificationUrl = `${config.frontendUrl || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+        const verificationUrl = `${config.frontendUrl}/verify-email?token=${verificationToken}`;
         
         const mailOptions = {
             from: config.emailUser,
@@ -84,7 +84,7 @@ class EmailService {
 
     // Send password reset email (for future use)
     async sendPasswordResetEmail(userEmail, userName, resetToken) {
-        const resetUrl = `${config.frontendUrl || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
         
         const mailOptions = {
             from: config.emailUser,

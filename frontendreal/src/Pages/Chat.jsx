@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { io } from 'socket.io-client';
+import { BACKEND_ADDRESS } from '../config/api';
 import './Pages.css';
 
 function getUserDisplay() {
@@ -26,8 +27,8 @@ export default function Chat() {
   const [nextSendAt, setNextSendAt] = useState(0);
   const [cooldownLeft, setCooldownLeft] = useState(0);
 
-  // Connect to same-origin (http://localhost:3000) and let Vite proxy `/socket.io` to backend
-  const socket = useMemo(() => io('/', {
+  // Connect directly to backend Socket.IO using configured backend address
+  const socket = useMemo(() => io(BACKEND_ADDRESS, {
     withCredentials: true,
     transports: ['websocket', 'polling'],
     path: '/socket.io'
