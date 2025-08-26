@@ -15,7 +15,7 @@ function getUserDisplay() {
     return 'Admin';
   }
 }
-
+const socketBaseUrl = BACKEND_ADDRESS.replace(/\/api\/?$/, '');
 export default function Chat() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
@@ -28,7 +28,7 @@ export default function Chat() {
   const [room, setRoom] = useState('general');
 
   // Connect directly to backend Socket.IO using configured backend address
-  const socket = useMemo(() => io(BACKEND_ADDRESS, {
+  const socket = useMemo(() => io(socketBaseUrl, {
     withCredentials: true,
     transports: ['websocket', 'polling'],
     path: '/socket.io'
