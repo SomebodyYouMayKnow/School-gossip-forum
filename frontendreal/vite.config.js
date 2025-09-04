@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 // Load environment variables from .env files
 dotenv.config()
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || 'http://3.128.25.225/api'
+const BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://dailysoup.ink/api'
 
 // https://vite.dev/config/
 export default defineConfig({
