@@ -16,12 +16,12 @@ app.use(logger("dev"));
 // - Permits localhost/127.0.0.1 (any port) by default for development
 // - Allows non-browser requests (no Origin header)
 const hardcodedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:8080',
   'http://127.0.0.1:8080',
+  'http://3.128.25.225',
+  'http://3.128.25.225:3000',
 ];
 const allowedOrigins = hardcodedOrigins;
 
