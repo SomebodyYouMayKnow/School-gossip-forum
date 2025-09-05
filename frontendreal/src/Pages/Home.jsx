@@ -17,7 +17,6 @@ const Home = () => {
   const [error, setError] = useState('');
   const [latestPoll, setLatestPoll] = useState(null);
   const [latestPost, setLatestPost] = useState(null);
-  const [recentChats, setRecentChats] = useState([]);
 
   // derive counts for poll options if missing
   const pollCounts = useMemo(() => {
@@ -57,15 +56,7 @@ const Home = () => {
         const post = postsResp.data?.posts?.[0] || null;
         setLatestPost(post);
 
-        // Fetch 3 most recent GENERAL chat messages
-        try {
-          const chatResp = await axios.get(`${BACKEND_ADDRESS}/api/chat/recent?room=general&limit=3`);
-          setRecentChats(Array.isArray(chatResp.data?.messages) ? chatResp.data.messages : []);
-        } catch (e2) {
-          // Non-fatal
-          console.warn('Failed to fetch recent chats', e2?.message || e2);
-          setRecentChats([]);
-        }
+        // Removed chat messages fetch
       } catch (e) {
         setError(e.response?.data?.message || e.message || 'Failed to load dashboard');
       } finally {
@@ -97,7 +88,7 @@ const Home = () => {
         <div className="status-message" style={{marginBottom:12}}>Loading…</div>
       )}
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr',gap:16}}>
         {/* Left column: stack Poll and Post */}
         <div style={{display:'flex', flexDirection:'column', gap:16}}>
           {/* Latest Poll */}
@@ -235,36 +226,6 @@ const Home = () => {
           )}
           </div>
         </div>
-
-        {/* Right Sidebar: Recent General Chats */}
-        <aside className="card" style={{border:'1px solid #e5e7eb', height:'fit-content'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <h3 style={{margin:0}}>Recent Chat (General)</h3>
-            <button className="button-secondary" onClick={() => navigate('/chat')}>Open Chat</button>
-          </div>
-          {recentChats.length === 0 && !loading && (
-            <div className="empty-state"><p>No recent messages.</p></div>
-          )}
-          <div style={{marginTop:8, display:'flex', flexDirection:'column', gap:8}}>
-            {recentChats.map((m, idx) => {
-              const isAdmin = !!m.admin;
-              return (
-                <div key={idx} style={{background:'#fff', border:'1px solid #e5e7eb', borderRadius:6, padding:'8px 10px'}}>
-                  <div style={{display:'flex', alignItems:'baseline', gap:8}}>
-                    <b style={isAdmin ? { color:'#b91c1c' } : undefined}>{m.user || 'Anonymous'}{isAdmin ? ' (Admin)' : ''}</b>
-                    <span style={{color:'#888', fontSize:12}}>{formatDate(m.ts)}</span>
-                  </div>
-                  <div style={{whiteSpace:'pre-wrap', fontWeight: isAdmin ? '700' : '400', color: isAdmin ? '#b91c1c' : 'inherit'}}>
-                    {m.text}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{marginTop:10, fontSize:12, color:'#666'}}>
-            To send a message, go to Chat.
-          </div>
-        </aside>
       </div>
     </div>
   )

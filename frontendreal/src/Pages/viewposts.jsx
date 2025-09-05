@@ -419,25 +419,6 @@ const ViewPosts = () => {
                                     onClick={e => handleVote(e, post._id, userVote === 'downvote' ? 'remove' : 'downvote')}
                                     disabled={post.deleted || post.commentsDisabled}
                                 >▼ Downvote {post.downvotes ? post.downvotes.length : 0}</button>
-                                {userId && post.userID === userId && !post.deleted && (
-                                    <button
-                                        style={{
-                                            background: '#d11a2a',
-                                            color: '#fff',
-                                            border: 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            marginLeft: 'auto'
-                                        }}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            openDeleteModal(post);
-                                        }}
-                                    >
-                                        🗑️ Delete
-                                    </button>
-                                )}
                             </div>
                             <div className="post-toggle-tip">Click to view full post</div>
                         </div>
