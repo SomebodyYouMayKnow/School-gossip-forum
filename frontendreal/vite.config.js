@@ -5,15 +5,21 @@ import dotenv from 'dotenv'
 // Load environment variables from .env files
 dotenv.config()
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://dailysoup.ink/api'
+const BACKEND = process.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5555'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000, // Change this to your desired port
+    port: 3000,
     proxy: {
-      // Proxy Socket.IO requests to backend to avoid CORS
+      '/api': {
+        target: BACKEND,
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: BACKEND,
+        changeOrigin: true,
+      },
       '/socket.io': {
         target: BACKEND,
         ws: true,

@@ -1,4 +1,10 @@
+# Sensitive local config
 /backend/config.js
-/backend/node_modules
-/frontend/node_modules
-/frontendreal/node_modules
+/Backend/config.js
+
+# Dependencies
+**/node_modules/
+
+# Local native/vendor library folders
+**/Libraries/
+**/libraries/

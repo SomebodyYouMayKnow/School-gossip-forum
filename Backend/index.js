@@ -68,6 +68,19 @@ app.get('/test', (req, res) => {
     res.json({ message: 'Test route working' });
 });
 
+// Compatibility alias for legacy frontend category lookup.
+// The current frontend requests /api/categories, while the recent posts router
+// also exposes categories under /api/recent-posts/categories.
+app.get('/api/categories', async (req, res) => {
+    try {
+        const categories = await mongo.getCategories();
+        res.json({ categories });
+    } catch (error) {
+        console.error('Error in categories alias:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Routes
 app.use("/api/login", require("./Routes/Login.js"));
 app.use("/api/register", require("./Routes/Register.js"));
